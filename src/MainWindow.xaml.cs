@@ -3,6 +3,8 @@ using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Linq;
+using System.ComponentModel;
 
 namespace LagoVista.GitHelper
 {
@@ -18,14 +20,16 @@ namespace LagoVista.GitHelper
             InitializeComponent();
             this.Loaded += MainWindow_Loaded;
 
-            _vm = new MainViewModel(Dispatcher);
+            _vm = new MainViewModel(Dispatcher, @"D:\nuviot");
             Page.DataContext = _vm;
+            
         }
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            _vm.ScanNow(@"D:\nuviot");
+            _vm.ScanNow();
         }
+
 
         TreeViewItem _previousTreeItem = null;
 
@@ -66,12 +70,14 @@ namespace LagoVista.GitHelper
 
         private void Refresh_Click(object sender, RoutedEventArgs e)
         {
-            _vm.ScanNow(@"D:\nuviot");
+            _vm.ScanNow();
         }
 
         private void FolderTree_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
-            Console.WriteLine("SEL CHANGED");
+            /* Prevents selecting parent nodes */
+            TreeViewItem tvi = FolderTree.ItemContainerGenerator.ContainerFromIndex(0) as TreeViewItem;
+            if (tvi != null && tvi.IsSelected) { tvi.IsSelected = true; tvi.IsSelected = false; }
         }
 
     }

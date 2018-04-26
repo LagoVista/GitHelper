@@ -1,11 +1,9 @@
-﻿using LagoVista.GitHelper;
+﻿using LagoVista.Core.Validation;
+using LagoVista.GitHelper;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace GitHelper.Build
 {
@@ -17,7 +15,7 @@ namespace GitHelper.Build
             _consoleWriter = writer;
         }
 
-        public void Build(string rootPath, SolutionInformation solution, string configuration)
+        public InvokeResult Build(string rootPath, SolutionInformation solution, string configuration)
         {
             var solutionPath = Path.Combine(rootPath, solution.LocalPath);
             var solutionFile = Path.Combine(rootPath, solution.LocalPath, solution.Solution);
@@ -31,17 +29,14 @@ namespace GitHelper.Build
                     UseShellExecute = false,
                     WorkingDirectory = solutionPath,
                     RedirectStandardOutput = true,
+                    RedirectStandardError = true,
                     CreateNoWindow = true
                 }
             };
 
-            proc.ErrorDataReceived += (sndr, msg) =>
-            {
-                var line = proc.StandardError.ReadLine().Trim();
-                _consoleWriter.AddMessage(LogType.Error, line);
-            };
-
             proc.Start();
+
+            var errs = new StringBuilder();
 
             while (!proc.StandardOutput.EndOfStream)
             {
@@ -49,42 +44,82 @@ namespace GitHelper.Build
                 _consoleWriter.AddMessage(LogType.Message, line);
             }
 
+            while (!proc.StandardError.EndOfStream)
+            {
+                var line = proc.StandardError.ReadLine().Trim();
+                errs.Append(line);
+                _consoleWriter.AddMessage(LogType.Error, line);
+            }
+
+            if (proc.ExitCode != 0)
+            {
+                errs.Append("Restore Failed!");
+            }
+
             _consoleWriter.Flush(false);
+
+            if (String.IsNullOrEmpty(errs.ToString()))
+            {
+                return InvokeResult.Success;
+            }
+            else
+            {
+                return InvokeResult.FromError(errs.ToString());
+            }
         }
 
-        public void Restore(string rootPath, SolutionInformation solution)
+        public InvokeResult Restore(string rootPath, SolutionInformation solution)
         {
             var solutionPath = Path.Combine(rootPath, solution.LocalPath);
             var nugetConfig = Path.Combine(rootPath, "nuget.config");
 
             var proc = new Process
             {
-                StartInfo = new ProcessStartInfo {
+                StartInfo = new ProcessStartInfo
+                {
                     FileName = "dotnet",
                     Arguments = $"restore {solutionPath} --configfile {nugetConfig}  ",
                     UseShellExecute = false,
                     WorkingDirectory = solutionPath,
                     RedirectStandardOutput = true,
+                    RedirectStandardError = true,
                     CreateNoWindow = true
                 }
             };
 
-            proc.ErrorDataReceived += (sndr, msg) =>
-            {
-                var line = proc.StandardError.ReadLine().Trim();
-                _consoleWriter.AddMessage(LogType.Error, line);
-            };
-
             proc.Start();
+
+            var errs = new StringBuilder();
 
             while (!proc.StandardOutput.EndOfStream)
             {
                 var line = proc.StandardOutput.ReadLine().Trim();
+                
                 _consoleWriter.AddMessage(LogType.Message, line);
+            }
+
+            while (!proc.StandardError.EndOfStream)
+            {
+                var line = proc.StandardError.ReadLine().Trim();
+                errs.Append(line);
+                _consoleWriter.AddMessage(LogType.Error, line);
+            }
+
+            if (proc.ExitCode != 0)
+            {
+                errs.Append("Restore Failed!");
             }
 
             _consoleWriter.Flush(false);
 
+            if (String.IsNullOrEmpty(errs.ToString()))
+            {
+                return InvokeResult.Success;
+            }
+            else
+            {
+                return InvokeResult.FromError(errs.ToString());
+            }
         }
     }
 }

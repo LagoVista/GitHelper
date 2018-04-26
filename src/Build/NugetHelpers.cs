@@ -1,4 +1,6 @@
-﻿using System;
+﻿using LagoVista.Core.Validation;
+using LagoVista.GitHelper;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -10,13 +12,20 @@ namespace GitHelper.Build
 {
     public class NugetHelpers
     {
-        const string NUGETVERSION1 = @"<PackageReference\s+Include\s+=\s+""LagoVista.(?'assembly'[\w\.]+)""\s+Version=""(?'version'[\w\.-]+)""\s+\/>";
+        const string NUGETVERSION1 = @"<PackageReference\s+Include\s*=\s*""LagoVista.(?'assembly'[\w\.]+)""\s+Version\s*=\s*""(?'version'[\w\.-]*)""\s+\/>";
         const string NUSPECVERSOIN_REGEX = @"<version>\s*(?'version'[\w\.-]+)\s*<\/version>";
 
+
         IFileHelper _fileHelper;
-        public NugetHelpers(IFileHelper fileHelper)
+        SolutionHelper _solutionsHelper;
+        IConsoleWriter _consoleWriter;
+
+
+        public NugetHelpers(IConsoleWriter consoleWriter, IFileHelper fileHelper, SolutionHelper solutionHelper)
         {
+            _consoleWriter = consoleWriter;
             _fileHelper = fileHelper;
+            _solutionsHelper = solutionHelper;
         }
 
         public string GenerateNugetVersion(int major, int minor, DateTime dateStamp)
@@ -27,38 +36,120 @@ namespace GitHelper.Build
             return $"{major}.{minor}.{days}-beta{timeStamp}";
         }
 
-        public void SaveBackup(string fileName, string nugetVersion)
+        public InvokeResult SaveBackup(string fileName)
         {
-            var nugetRegEx = new Regex(NUGETVERSION1);
-            var fileContents = _fileHelper.OpenFile(fileName);
-            var matches = nugetRegEx.Matches(fileContents);
-            foreach (Match match in matches)
+            try
             {
-                Console.WriteLine("LagoVista." + match.Groups["assembly"].Value + "=" + match.Groups["version"].Value);
+                var nugetRegEx = new Regex(NUGETVERSION1);
+
+                var fileOpenResult = _fileHelper.OpenFile(fileName);
+                if (!fileOpenResult.Successful) return fileOpenResult.ToInvokeResult();
+
+                var fileContents = fileOpenResult.Result;
+                var matches = nugetRegEx.Matches(fileContents);
+                foreach (Match match in matches)
+                {
+                    Console.WriteLine("LagoVista." + match.Groups["assembly"].Value + "=" + match.Groups["version"].Value);
+                }
             }
+            catch(Exception ex)
+            {
+                _consoleWriter.AddMessage(LogType.Error, $"Exception: {ex.Message} - Save Nuget Backup File: {fileName} ");
+                return InvokeResult.FromException("NugetHelpers_SaveBackup", ex);
+            }
+
+            return InvokeResult.Success;
         }
 
-        public void ApplyToCSProject(string fileName, string nugetVersion)
-        {            
-            var nugetRegEx = new Regex(NUGETVERSION1);
-            var fileContents = _fileHelper.OpenFile(fileName);
-            var matches = nugetRegEx.Matches(fileContents);
-
-            var replace = @"<PackageReference Include = ""LagoVista.${assembly}"" Version=""" + nugetVersion + @""" />";
-            var newFileContent = nugetRegEx.Replace(fileContents, replace);
-
-            _fileHelper.WriteFile(fileName, newFileContent);
-        }
-
-        public void ApplyToNuspecFile(string fileName, string nugetVersion)
+        public InvokeResult ApplyToCSProjects(string rootPath, SolutionInformation solution, string nugetVersion)
         {
-            var nugetRegEx = new Regex(NUSPECVERSOIN_REGEX);
-            var fileContents = _fileHelper.OpenFile(fileName);
-            var matches = nugetRegEx.Matches(fileContents);
+            try
+            {
+                var csProjs = _solutionsHelper.GetAllProjectFiles(rootPath, solution);
+                foreach (var csProj in csProjs)
+                {
+                    var result = ApplyToCSProject(csProj, nugetVersion);
+                    if (!result.Successful) return result;
+                }
+            }
+            catch(Exception ex)
+            {
+                _consoleWriter.AddMessage(LogType.Error, $"Exception: {ex.Message} - Apply Nuget Version to Solution: {solution.Name} ");
+                return InvokeResult.FromException("NugetHelpers_ApplyToCSProjects", ex);
+            }
 
-            var replace = $"<version>{nugetVersion}</version>";
-            var newFileContent = nugetRegEx.Replace(fileContents, replace);
-            _fileHelper.WriteFile(fileName, newFileContent);
+            return InvokeResult.Success;
+        }
+
+        public InvokeResult ApplyToAllNuspecFiles(string rootPath, SolutionInformation solution, string nugetVersion)
+        {
+            try
+            {
+                var files = GetAllNuspecFiles(rootPath, solution);
+                foreach (var file in files)
+                {
+                    var result = ApplyToNuspecFile(file, nugetVersion);
+                    if (!result.Successful) return result;
+                }
+            }
+            catch(Exception ex)
+            {
+                _consoleWriter.AddMessage(LogType.Error, $"Exception: {ex.Message} - Apply Nuget Version to All Nuspec Files: {solution.Name} ");
+                return InvokeResult.FromException("NugetHelpers_ApplyToAllNuspecFiles", ex);
+            }
+
+
+            return InvokeResult.Success;
+        }
+
+        public InvokeResult ApplyToCSProject(string fileName, string nugetVersion)
+        {
+            try
+            {
+                var nugetRegEx = new Regex(NUGETVERSION1);
+                var result = _fileHelper.OpenFile(fileName);
+                if (!result.Successful) return result.ToInvokeResult();
+
+                var fileContents = result.Result;
+                var matches = nugetRegEx.Matches(fileContents);
+
+                var replace = @"<PackageReference Include=""LagoVista.${assembly}"" Version=""" + nugetVersion + @""" />";
+                var newFileContent = nugetRegEx.Replace(fileContents, replace);
+
+                _fileHelper.WriteFile(fileName, newFileContent);
+            }
+            catch(Exception ex)
+            {
+                _consoleWriter.AddMessage(LogType.Error, $"Exception: {ex.Message} - Apply Nuget Version to Project: {fileName} ");
+                return InvokeResult.FromException("NugetHelpers_ApplyToCSProject", ex);
+            }
+
+            return InvokeResult.Success;
+        }
+
+        public InvokeResult ApplyToNuspecFile(string fileName, string nugetVersion)
+        {
+
+            try
+            {
+                var nugetRegEx = new Regex(NUSPECVERSOIN_REGEX);
+                var result = _fileHelper.OpenFile(fileName);
+                if (!result.Successful) return result.ToInvokeResult();
+
+                var fileContents = result.Result;
+                var matches = nugetRegEx.Matches(fileContents);
+
+                var replace = $"<version>{nugetVersion}</version>";
+                var newFileContent = nugetRegEx.Replace(fileContents, replace);
+                _fileHelper.WriteFile(fileName, newFileContent);
+            }
+            catch(Exception ex)
+            {
+                _consoleWriter.AddMessage(LogType.Error, $"Exception: {ex.Message} - Apply Nuget Version to Nuspec File: {fileName} ");
+                return InvokeResult.FromException("NugetHelpers_ApplyToNuspecFile", ex);
+            }
+
+            return InvokeResult.Success;
 
         }
 

@@ -1,4 +1,5 @@
-﻿using LagoVista.Core.Commanding;
+﻿using GitHelper.Build;
+using LagoVista.Core.Commanding;
 using LagoVista.GitHelper;
 using System;
 using System.Collections.Generic;
@@ -10,6 +11,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Threading;
 
 namespace LagoVista.GitHelper
@@ -20,10 +22,18 @@ namespace LagoVista.GitHelper
         private ObservableCollection<ConsoleOutput> _consoleOutput = new ObservableCollection<ConsoleOutput>();
         ConsoleWriter _consoleWriter;
 
-        public MainViewModel(Dispatcher dispatcher)
+        Builder _builder;
+        String _rootPath;
+
+        public MainViewModel(Dispatcher dispatcher, string rootPath)
         {
+            _rootPath = rootPath;
             _dispatcher = dispatcher;
             _consoleWriter = new ConsoleWriter(_consoleOutput, dispatcher);
+
+            _builder = new Builder(rootPath, _consoleWriter);
+
+            BuildNowCommand = new RelayCommand(BuildNow);
         }
 
 
@@ -39,9 +49,9 @@ namespace LagoVista.GitHelper
             }
         }
 
-        public void ScanNow(string directyName)
+        public void ScanNow()
         {
-            var dirs = System.IO.Directory.GetDirectories(directyName);
+            var dirs = System.IO.Directory.GetDirectories(_rootPath);
             ScanMax = dirs.Length;
             ScanVisibility = Visibility.Visible;
 
@@ -49,7 +59,7 @@ namespace LagoVista.GitHelper
             {
                 Folders = new ObservableCollection<GitManagedFolder>();
 
-                foreach (var dir in dirs)
+                foreach (var dir in dirs.Take(3))
                 {
                     _dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, (Action)delegate
                     {
@@ -86,6 +96,25 @@ namespace LagoVista.GitHelper
                 });
             });
 
+        }
+
+        public void BuildNow(Object obj)
+        {
+            Task.Run(() =>
+            {
+                _consoleWriter.AddMessage(LogType.Message, "Starting build");
+                _consoleWriter.Flush(true);
+                var result = _builder.BuildAll("release", 1, 2);
+                if (result.Successful)
+                {
+                    _consoleWriter.AddMessage(LogType.Success, "Build Succeeded");
+                }
+                else
+                {
+                    _consoleWriter.AddMessage(LogType.Error, "Build Failed!");
+                }
+                _consoleWriter.Flush(false);
+            });
         }
 
         #region File Watcher
@@ -410,7 +439,7 @@ namespace LagoVista.GitHelper
                 return null;
             }
 
-            var folder = new GitManagedFolder(_consoleWriter);
+            var folder = new GitManagedFolder(_dispatcher, _consoleWriter);
             folder.Label = dir.Split('\\').Last();
             folder.Path = dir;
             folder.Scan();
@@ -464,6 +493,16 @@ namespace LagoVista.GitHelper
             }
         }
 
+        public String RootPath
+        {
+            get { return _rootPath; }
+            set
+            {
+                _rootPath = value;
+                NotifyChanged(nameof(RootPath));
+            }
+        }
+
 
         private string _status;
         public string Status
@@ -496,29 +535,36 @@ namespace LagoVista.GitHelper
             get { return _currentFolder; }
             set
             {
-                _currentFolder = value;
+                _currentFolder = null;
+                NotifyChanged(nameof(CurrentFolder));
+
                 if (value != null)
                 {
                     _dispatcher.BeginInvoke((Action)delegate
                     {
-                        Status = "Scanning " + _currentFolder.Label;
-                        ScanVisibility = Visibility.Visible;
-                        ScanMax = 100;
-                        ScanProgress = 50;
+                        Status = "Scanning " + value.Label;
                     });
 
-                    _currentFolder.Scan(true);
+                    Task.Run(() =>
+                    {
+                        value.Scan(true);
 
-                    _dispatcher.BeginInvoke((Action)delegate
-                   {
-                       Status = "Ready " + _currentFolder.Label;
-                       ScanVisibility = Visibility.Collapsed;
-                   });
+                        _dispatcher.BeginInvoke((Action)delegate
+                       {
+                           _currentFolder = value;
+                           Status = "Ready " + _currentFolder.Label;
+                       });
+                    });
                 }
 
-                NotifyChanged(nameof(CurrentFolder));
+                
             }
         }
+        #endregion
+
+        #region Commands
+        public ICommand BuildNowCommand { get; private set; }
+
         #endregion
     }
 }

@@ -26,6 +26,7 @@ namespace LagoVista.GitHelper
     {
         public event PropertyChangedEventHandler PropertyChanged;
         private ConsoleWriter _consoleWriter;
+        Dispatcher _dispatcher;
 
         enum GitStatusParsingState
         {
@@ -36,9 +37,10 @@ namespace LagoVista.GitHelper
             Conflicts,
         }
 
-        public GitManagedFolder(ConsoleWriter writer)
+        public GitManagedFolder(Dispatcher dispatcher, ConsoleWriter writer)
         {
             _consoleWriter = writer;
+            _dispatcher = dispatcher;
 
             StashTempFilesCommand = new RelayCommand(StashTempFiles, CanStashTempFiles);
             RestoreTempFilesCommand = new RelayCommand(RestoreTempFiles, CanRestoreTempFiles);
@@ -50,10 +52,13 @@ namespace LagoVista.GitHelper
 
         private void NotifyChanged(string propertyName)
         {
-            if (PropertyChanged != null)
+            _dispatcher.BeginInvoke(DispatcherPriority.Normal, (Action)delegate
             {
-                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
-            }
+                if (PropertyChanged != null)
+                {
+                    PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+                }
+            });
         }
 
         public bool CanStashTempFiles()
@@ -112,7 +117,10 @@ namespace LagoVista.GitHelper
             }
 
             _consoleWriter.Flush(false);
-            RestoreTempFilesCommand.RaiseCanExecuteChanged();
+            _dispatcher.BeginInvoke(DispatcherPriority.Normal, (Action)delegate
+            {
+                RestoreTempFilesCommand.RaiseCanExecuteChanged();
+            });
         }
 
         public void StageFiles()
@@ -333,7 +341,7 @@ namespace LagoVista.GitHelper
         {
             get
             {
-                if(String.IsNullOrEmpty(_label))
+                if (String.IsNullOrEmpty(_label))
                 {
                     return _label;
                 }
@@ -376,7 +384,7 @@ namespace LagoVista.GitHelper
             {
                 _isBehindOrigin = value;
                 NotifyChanged(nameof(IsBehindOrigin));
-                PullCommand.RaiseCanExecuteChanged();
+                _dispatcher.BeginInvoke(DispatcherPriority.Normal, (Action)delegate { PullCommand.RaiseCanExecuteChanged(); });
             }
         }
 
@@ -388,7 +396,8 @@ namespace LagoVista.GitHelper
             {
                 _hasUnpushedCommits = value;
                 NotifyChanged(nameof(HasUnpushedCommits));
-                PushCommand.RaiseCanExecuteChanged();
+                _dispatcher.BeginInvoke(DispatcherPriority.Normal, (Action)delegate { PushCommand.RaiseCanExecuteChanged(); });
+
             }
         }
 
@@ -491,6 +500,7 @@ namespace LagoVista.GitHelper
             };
 
             _consoleWriter.AddMessage(LogType.Message, $"git remote update");
+            _consoleWriter.Flush();
 
             proc.ErrorDataReceived += (sndr, msg) =>
             {
@@ -513,27 +523,31 @@ namespace LagoVista.GitHelper
                 _consoleWriter.AddMessage(LogType.Message, line);
             }
 
-         
+
             return success;
         }
 
         public bool Scan(bool clearConsoleWriter = true)
         {
+            _dispatcher.BeginInvoke(DispatcherPriority.Normal, (Action)delegate
+            {
+                HasUnpushedCommits = false;
+                IsBehindOrigin = false;
+                Untracked.Clear();
+                NotStaged.Clear();
+                Staged.Clear();
+                Conflicted.Clear();
+            });
+
             var start = DateTime.Now;
 
             _consoleWriter.AddMessage(LogType.Message, $"cd {Path}");
-           
+
             if (!UpdateFromRemote())
             {
                 return false;
             }
 
-            HasUnpushedCommits = false;
-            IsBehindOrigin = false;
-            Untracked.Clear();
-            NotStaged.Clear();
-            Staged.Clear();
-            Conflicted.Clear();
 
             var err = false;
 
@@ -575,6 +589,10 @@ namespace LagoVista.GitHelper
                 _consoleWriter.Flush(true);
                 return false;
             }
+
+            var untrackedFilesToAdd = new List<GitFileStatus>();
+            var notStagedFilesToAdd = new List<GitFileStatus>();
+            var stagedFilesToAdd = new List<GitFileStatus>();
 
             while (!proc.StandardOutput.EndOfStream)
             {
@@ -660,7 +678,8 @@ namespace LagoVista.GitHelper
                             fileStatus.Changes = DetectChanges(fileStatus);
                             fileStatus.Analyze();
 
-                            Staged.Add(fileStatus);
+                            stagedFilesToAdd.Add(fileStatus);
+
                             break;
 
                         case GitStatusParsingState.NotStaged:
@@ -669,7 +688,7 @@ namespace LagoVista.GitHelper
                                 fileStatus.Changes = DetectChanges(fileStatus);
                                 fileStatus.Analyze();
 
-                                NotStaged.Add(fileStatus);
+                                notStagedFilesToAdd.Add(fileStatus);
                             }
                             break;
                         case GitStatusParsingState.Untracked:
@@ -677,25 +696,32 @@ namespace LagoVista.GitHelper
                                 fileStatus.State = GitFileState.Untracked;
                                 fileStatus.Analyze();
 
-                                Untracked.Add(fileStatus);
+                                untrackedFilesToAdd.Add(fileStatus);
                             }
                             break;
                     }
                 }
             }
 
-            UntrackedFileStatus = Untracked.Where(utf => utf.IsDirty).Any() ? CurrentStatus.Dirty : CurrentStatus.Untouched;
-            ConflictFileStatus = Conflicted.Where(utf => utf.IsDirty).Any() ? CurrentStatus.Dirty : CurrentStatus.Untouched;
-            NotStagedFileStatus = NotStaged.Where(utf => utf.IsDirty).Any() ? CurrentStatus.Dirty : CurrentStatus.Untouched;
-            StagedFileStatus = Staged.Any() ? CurrentStatus.Dirty : CurrentStatus.Untouched;
-            IsDirty = NotStagedFileStatus == CurrentStatus.Dirty ||
-                        ConflictFileStatus == CurrentStatus.Dirty ||
-                        UntrackedFileStatus == CurrentStatus.Dirty ||
-                        StagedFileStatus == CurrentStatus.Dirty ||
-                        HasUnpushedCommits || IsBehindOrigin;
+            _dispatcher.BeginInvoke(DispatcherPriority.Normal, (Action)delegate
+            {
+                foreach (var file in stagedFilesToAdd) Staged.Add(file);
+                foreach (var file in untrackedFilesToAdd) Untracked.Add(file);
+                foreach (var file in notStagedFilesToAdd) NotStaged.Add(file);
 
-            StageCommand.RaiseCanExecuteChanged();
-            CommitCommand.RaiseCanExecuteChanged();
+                UntrackedFileStatus = Untracked.Where(utf => utf.IsDirty).Any() ? CurrentStatus.Dirty : CurrentStatus.Untouched;
+                ConflictFileStatus = Conflicted.Where(utf => utf.IsDirty).Any() ? CurrentStatus.Dirty : CurrentStatus.Untouched;
+                NotStagedFileStatus = NotStaged.Where(utf => utf.IsDirty).Any() ? CurrentStatus.Dirty : CurrentStatus.Untouched;
+                StagedFileStatus = Staged.Any() ? CurrentStatus.Dirty : CurrentStatus.Untouched;
+                IsDirty = NotStagedFileStatus == CurrentStatus.Dirty ||
+                            ConflictFileStatus == CurrentStatus.Dirty ||
+                            UntrackedFileStatus == CurrentStatus.Dirty ||
+                            StagedFileStatus == CurrentStatus.Dirty ||
+                            HasUnpushedCommits || IsBehindOrigin;
+
+                StageCommand.RaiseCanExecuteChanged();
+                CommitCommand.RaiseCanExecuteChanged();
+            });
 
             _consoleWriter.AddMessage(LogType.Message, $"Updated in {DateTime.Now - start} ");
             _consoleWriter.Flush(clearConsoleWriter);

@@ -16,7 +16,7 @@ namespace GitHelperTests
         {
             var fileHelper = new Moq.Mock<IFileHelper>();
 
-            var helper = new NugetHelpers(fileHelper.Object);
+            var helper = new NugetHelpers(new ConsoleWriter(), fileHelper.Object, new SolutionHelper(fileHelper.Object, new ConsoleWriter()));
             Console.WriteLine(helper.GenerateNugetVersion(1, 1, DateTime.Now.AddHours(-3)));
 
         }

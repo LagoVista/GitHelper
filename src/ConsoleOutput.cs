@@ -12,6 +12,7 @@ namespace LagoVista.GitHelper
         Message,
         Warning,
         Error,
+        Success,
     }
 
     public class ConsoleOutput

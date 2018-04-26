@@ -1,4 +1,6 @@
-﻿using System;
+﻿using LagoVista.Core.Validation;
+using LagoVista.GitHelper;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,21 +10,51 @@ namespace GitHelper.Build
 {
     public interface IFileHelper
     {
-        string OpenFile(string fileName);
+        InvokeResult<string> OpenFile(string fileName);
 
-        void WriteFile(string fileName, string contents);
+        InvokeResult WriteFile(string fileName, string contents);
     }
 
     public class FileHelpers : IFileHelper
     {
-        public string OpenFile(string fileName)
+        IConsoleWriter _consoleWriter;
+
+        public FileHelpers(IConsoleWriter writer)
         {
-            return System.IO.File.ReadAllText(fileName);
+            _consoleWriter = writer;
         }
 
-        public void WriteFile(string fileName, string contents)
+        public InvokeResult<string> OpenFile(string fileName)
         {
-            System.IO.File.WriteAllText(fileName, contents);
+            if(!System.IO.File.Exists(fileName))
+            {
+                _consoleWriter.AddMessage(LogType.Error, "File does not exist: " + fileName);
+                return InvokeResult<string>.FromError("File does not exist: " + fileName);
+            }
+
+            try
+            {
+                return InvokeResult<String>.Create(System.IO.File.ReadAllText(fileName));
+            }
+            catch(Exception ex)
+            {
+                _consoleWriter.AddMessage(LogType.Error, "Could not open file: " + fileName + " Exception: " + ex.Message);
+                return InvokeResult<string>.FromError("Could not open file: " + fileName + " Exception: " + ex.Message);
+            }
+        }
+
+        public InvokeResult WriteFile(string fileName, string contents)
+        {
+            try
+            {
+                System.IO.File.WriteAllText(fileName, contents);
+                return InvokeResult.Success;
+            }
+            catch(Exception ex)
+            {
+                _consoleWriter.AddMessage(LogType.Error, "Could not write file: " + fileName + " Exception: " + ex.Message);
+                return InvokeResult.FromError("Could not write file: " + fileName + " Exception: " + ex.Message);
+            }
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using GitHelper.Build;
+using LagoVista.Core.Validation;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using System;
@@ -64,9 +65,9 @@ namespace GitHelperTests
         public void ReplaceInStandardLibrary()
         {
             var fileHelper = new Moq.Mock<IFileHelper>();
-            fileHelper.Setup(fh => fh.OpenFile(It.IsAny<string>())).Returns(FILECONTENTS);
+            fileHelper.Setup(fh => fh.OpenFile(It.IsAny<string>())).Returns(InvokeResult<string>.Create(FILECONTENTS));
 
-            var nugetHelper = new NugetHelpers(fileHelper.Object);
+            var nugetHelper = new NugetHelpers(new ConsoleWriter(), fileHelper.Object, new SolutionHelper(fileHelper.Object, new ConsoleWriter()));
             nugetHelper.ApplyToCSProject("DONECARE", "1.1.1-alpha32");
         }
 
@@ -74,9 +75,9 @@ namespace GitHelperTests
         public void ReplaceInNUSPEC()
         {
             var fileHelper = new Moq.Mock<IFileHelper>();
-            fileHelper.Setup(fh => fh.OpenFile(It.IsAny<string>())).Returns(NUSPEC_FILE_CONTENTS);
+            fileHelper.Setup(fh => fh.OpenFile(It.IsAny<string>())).Returns(InvokeResult<string>.Create(NUSPEC_FILE_CONTENTS));
 
-            var nugetHelper = new NugetHelpers(fileHelper.Object);
+            var nugetHelper = new NugetHelpers(new ConsoleWriter(), fileHelper.Object, new SolutionHelper(fileHelper.Object, new ConsoleWriter()));
             nugetHelper.ApplyToNuspecFile("DONECARE", "1.1.1-alpha32");
         }
 

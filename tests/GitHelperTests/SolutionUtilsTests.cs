@@ -16,29 +16,31 @@ namespace GitHelperTests
         NugetUtils _nugetUtils;
         BuildUtils _buildUtils;
         NugetHelpers _nugetHelpers;
-        SolutionsHelper _solutionHelper;
+        SolutionHelper _solutionHelper;
+        FileHelpers _fileHelpers;
 
         [TestInitialize]
         public void Init()
         {
-            var helper = new SolutionsHelper();
-            var items = helper.LoadSolutions(rootPath);
-            _buildUtils = new BuildUtils(new ConsoleWriter());
-            _nugetUtils = new NugetUtils(new ConsoleWriter(), new FileHelpers());
-            _solutionHelper = new SolutionsHelper();
+            var consoleWriter = new ConsoleWriter();
 
-            _nugetHelpers = new NugetHelpers(new FileHelpers());
+            _fileHelpers = new FileHelpers(consoleWriter);
+
+            _solutionHelper = new SolutionHelper(_fileHelpers, consoleWriter);
+            var items = _solutionHelper.LoadSolutions(rootPath);
+            _buildUtils = new BuildUtils(new ConsoleWriter());
+            _nugetHelpers = new NugetHelpers(consoleWriter, new FileHelpers(consoleWriter), _solutionHelper);
+            _nugetUtils = new NugetUtils(consoleWriter, new FileHelpers(consoleWriter), _nugetHelpers );
         }
 
         [TestMethod]
         public void ReadSolutions()
         {
-            var helper = new SolutionsHelper();
-            var items = helper.LoadSolutions(rootPath);
-            foreach(var item in items)
+            var items = _solutionHelper.LoadSolutions(rootPath);
+            foreach(var item in items.Result)
             {
                 Console.WriteLine(item.Name + "," + item.LocalPath + "," + item.Repo);
-                var projectFiles = helper.GetAllProjectFiles(rootPath, item);
+                var projectFiles = _solutionHelper.GetAllProjectFiles(rootPath, item);
                 foreach(var proj in projectFiles)
                 {
                     Console.WriteLine(proj);
@@ -51,10 +53,9 @@ namespace GitHelperTests
         [TestMethod]
         public void RestoreSolution()
         {
-            var helper = new SolutionsHelper();
-            var items = helper.LoadSolutions(rootPath);
+            var items = _solutionHelper.LoadSolutions(rootPath);
 
-            _buildUtils.Restore(rootPath, items.First());
+            _buildUtils.Restore(rootPath, items.Result.First());
         }
 
         [TestMethod]
@@ -66,39 +67,56 @@ namespace GitHelperTests
         [TestMethod]
         public void UpdateNugetVersions()
         {
-            var helper = new SolutionsHelper();
-            var items = helper.LoadSolutions(rootPath);
+            var items = _solutionHelper.LoadSolutions(rootPath);
             var nugetVersion = _nugetHelpers.GenerateNugetVersion(1, 3, DateTime.Now);
 
-            var projectFiles = _solutionHelper.GetAllProjectFiles(rootPath, items.First());
-            foreach(var projectFile in projectFiles)
+            foreach (var solution in items.Result)
             {
-                _nugetHelpers.ApplyToCSProject(projectFile, nugetVersion);
-            }
-
-            var nuspecFiles = _nugetHelpers.GetAllNuspecFiles(rootPath, items.First());
-            foreach(var specFile in nuspecFiles)
-            {
-                _nugetHelpers.ApplyToNuspecFile(specFile, nugetVersion);
+                _nugetHelpers.ApplyToCSProjects(rootPath, solution, nugetVersion);
+                _nugetHelpers.ApplyToAllNuspecFiles(rootPath, solution, nugetVersion);
             }
         }
 
         [TestMethod]
         public void BuildSolution()
         {
-            var helper = new SolutionsHelper();
-            var items = helper.LoadSolutions(rootPath);
+            var items = _solutionHelper.LoadSolutions(rootPath);
 
-            _buildUtils.Build(rootPath, items.First(), "release");
+            _buildUtils.Build(rootPath, items.Result.First(), "release");
         }
 
         [TestMethod]
         public void CreatePackages()
         {
-            var helper = new SolutionsHelper();
-            var items = helper.LoadSolutions(rootPath);
+            var items = _solutionHelper.LoadSolutions(rootPath);
 
-            _nugetUtils.CreatePackage(rootPath, items.First());
+            _nugetUtils.CreatePackage(rootPath, items.Result.First());
+        }
+
+        private void FullBuild(SolutionInformation solution)
+        {
+            _buildUtils.Restore(rootPath, solution);
+            _buildUtils.Build(rootPath, solution, "release");
+
+            _nugetUtils.CreatePackage(rootPath, solution);
+        }
+
+        [TestMethod]
+        public void BuildFirstTwoProjects()
+        {
+            _nugetUtils.RemoveAllOldPackages(rootPath);
+
+            var items = _solutionHelper.LoadSolutions(rootPath);
+            var nugetVersion = _nugetHelpers.GenerateNugetVersion(1, 3, DateTime.Now);
+
+            _nugetHelpers.ApplyToCSProjects(rootPath, items.Result.First(), nugetVersion);
+            _nugetHelpers.ApplyToAllNuspecFiles(rootPath, items.Result.First(), nugetVersion);
+
+            _nugetHelpers.ApplyToCSProjects(rootPath, items.Result[1], nugetVersion);
+            _nugetHelpers.ApplyToAllNuspecFiles(rootPath, items.Result[1], nugetVersion);
+
+            FullBuild(items.Result[0]);
+            FullBuild(items.Result[1]);
         }
     }
 }

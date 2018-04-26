@@ -6,21 +6,24 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Data;
 using System.Windows.Media;
-using WpfApp1;
 
-namespace LagoVista.GitHelper
+namespace LagoVista.GitHelper.Converters
 {
-    public class ColorConverter : IValueConverter
+    public class LogTypeColorCodeConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (value is CurrentStatus fileStatus)
+            if (value is LogType logType)
             {
-                return fileStatus == CurrentStatus.Dirty ? Brushes.Green : Brushes.LightGray;
+                switch(logType)
+                {
+                    case LogType.Error: return Brushes.Red;
+                    case LogType.Warning: return Brushes.Yellow;
+                    case LogType.Success: return Brushes.LightGreen;
+                }
             }
 
-            return Brushes.Black;
-
+            return Brushes.White;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
