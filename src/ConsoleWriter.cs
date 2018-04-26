@@ -8,7 +8,13 @@ using System.Windows.Threading;
 
 namespace LagoVista.GitHelper
 {
-    public class ConsoleWriter
+    public interface IConsoleWriter
+    {
+        void AddMessage(LogType type, string message);
+        void Flush(Boolean clear = false);
+    }
+
+    public class ConsoleWriter : IConsoleWriter
     {
 
         ObservableCollection<ConsoleOutput> _buffer = new ObservableCollection<ConsoleOutput>();

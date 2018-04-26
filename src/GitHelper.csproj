@@ -68,6 +68,12 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Build\BuildUtils.cs" />
+    <Compile Include="Build\FileHelpers.cs" />
+    <Compile Include="Build\NugetHelpers.cs" />
+    <Compile Include="Build\NugetUtils.cs" />
+    <Compile Include="Build\SolutionInformation.cs" />
+    <Compile Include="Build\SolutionsHelper.cs" />
     <Compile Include="ColorConverter.cs" />
     <Compile Include="ConsoleOutput.cs" />
     <Compile Include="ConsoleWriter.cs" />
@@ -102,6 +108,9 @@
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <None Include="Solutions.json">
+      <SubType>Component</SubType>
     </None>
   </ItemGroup>
   <ItemGroup>

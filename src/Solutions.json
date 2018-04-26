@@ -1,0 +1,194 @@
+﻿[
+    {
+        "Name": "Core",
+        "LocalPath": "co.Core",
+        "Repo": "https://github.com/lagovista/core",
+        "Solution": "Core.sln",
+        "Private": false,
+        "Build": true
+    },
+    {
+        "Name": "Logging",
+        "LocalPath": "lo.Logging",
+        "Repo": "https://github.com/lagovista/logging",
+        "Solution": "Logging.sln",
+        "Private": false,
+        "Build": true
+    },
+    {
+        "Name": "Cloud Storage",
+        "LocalPath": "cs.CloudStorage",
+        "Repo": "https://github.com/lagovista/cloudstorage",
+        "Solution": "CloudStorage.sln",
+        "Private": false,
+        "Build": true
+    },
+    {
+        "Name": "User Admin",
+        "LocalPath": "ua.UserAdmin",
+        "Repo": "https://github.com/lagovista/useradmin",
+        "Solution": "UserAdmin.sln",
+        "Private": false,
+        "Build": true
+    },
+    {
+        "Name": "Web Common",
+        "LocalPath": "wc.WebCommon",
+        "Repo": "https://github.com/lagovista/webcommon",
+        "Solution": "WebCommon.sln",
+        "Private": false,
+        "Build": true
+    },            
+    {
+        "Name": "Device Admin",
+        "LocalPath": "da.DeviceAdmin",
+        "Repo": "https://github.com/lagovista/deviceadmin",
+        "Solution": "WebCommon.sln",
+        "Private": false,
+        "Build": true
+    },                
+    {
+        "Name": "Device Messaging",
+        "LocalPath": "dm.DeviceMessagingAdmin",
+        "Repo": "https://github.com/lagovista/DeviceMessagingAdmin",
+        "Solution": "DeviceMessagingAdmin.sln",
+        "Private": false,
+        "Build": true
+    },                
+    {
+        "Name": "Pipeline Management",
+        "LocalPath": "pm.PipelineManagement",
+        "Repo": "https://github.com/lagovista/PipelineManagement",
+        "Solution": "PipelineManagement.sln",
+        "Private": false,
+        "Build": true
+    },                
+    {
+        "Name": "Device Management",
+        "LocalPath": "dg.DeviceManagement",
+        "Repo": "https://github.com/lagovista/DeviceManagement",
+        "Solution": "DeviceManagement.sln",
+        "Private": false,
+        "Build": true
+    },               
+    {
+        "Name": "Simulator Services",
+        "LocalPath": "sm.SimulatorServices",
+        "Repo": "https://github.com/lagovista/SimulatorServices",
+        "Solution": "SimulatorServices.sln",
+        "Private": false,
+        "Build": true
+    },                
+    {
+        "Name": "Deployment Management",
+        "LocalPath": "de.Deployments",
+        "Repo": "https://github.com/lagovista/Deployments",
+        "Solution": "Deployments.sln",
+        "Private": false,
+        "Build": true
+    },                
+    {
+        "Name": "Runtime Core",
+        "LocalPath": "ru.Runtime",
+        "Repo": "https://github.com/lagovista/Runtime",
+        "Solution": "Runtime.sln",
+        "Private": false,
+        "Build": true
+    },                                
+    {
+        "Name": "Verifiers",
+        "LocalPath": "ve.Verifiers",
+        "Repo": "https://github.com/lagovista/Verifiers",
+        "Solution": "Verifiers.sln",
+        "Private": false,
+        "Build": true
+    },      
+    {
+        "Name": "User Admin Rest Services",
+        "LocalPath": "ur.UserAdminRest",
+        "Repo": "https://github.com/lagovista/UserAdminRest",
+        "Solution": "UserAdminRest.sln",
+        "Private": false,
+        "Build": true
+    },      
+    {
+        "Name": "Billing",
+        "LocalPath": "bi.Billing",
+        "Repo": "https://slsys.visualstudio.com/LagoVista/_git/NuvIotBilling",
+        "Solution": "Billing.sln",
+        "Private": true,
+        "Build": true
+    },      
+    {
+        "Name": "Project Management",
+        "LocalPath": "pr.PRojectManagement",
+        "Repo": "https://slsys.visualstudio.com/LagoVista/_git/ProjectManagement",
+        "Solution": "ProjectManagement.sln",
+        "Private": true,
+        "Build": true
+    },    
+    {
+        "Name": "Starter Kit",
+        "LocalPath": "sk.StarterKit",
+        "Repo": "https://github.com/lagovista/starterkit",
+        "Solution": "StarterKit.sln",
+        "Private": false,
+        "Build": true
+    },                 
+    {
+        "Name": "View Manager",
+        "LocalPath": "vm.ViewManager",
+        "Repo": "https://slsys.visualstudio.com/LagoVista/_git/ViewManager",
+        "Solution": "Billing.sln",
+        "Private": true,
+        "Build": true
+    },      
+    {
+        "Name": "App Support",
+        "LocalPath": "as.AppSupport",
+        "Repo": "https://slsys.visualstudio.com/LagoVista/_git/NuvIoTAppSupport",
+        "Solution": "AppSupport.sln",
+        "Private": true,
+        "Build": true
+    },                                                
+    {
+        "Name": "IoT Engine",
+        "LocalPath": "io.IotEngine",
+        "Repo": "https://slsys.visualstudio.com/LagoVista/_git/IoTEngine",
+        "Solution": "Engine.sln",
+        "Private": true,
+        "Build": true
+    },      
+    {
+        "Name": "NuvIoT Web/API",
+        "LocalPath": "nu.NuvIot",
+        "Repo": "https://slsys.visualstudio.com/LagoVista/_git/Web",
+        "Solution": "Web.sln",
+        "Private": true,
+        "Build": true
+    },
+    {
+        "Name": "NuvIoT Web/API",
+        "LocalPath": "no.Notifications",
+        "Repo": "https://slsys.visualstudio.com/LagoVista/_git/NotificationServer",
+        "Solution": "NotificationServer.sln",
+        "Private": true,
+        "Build": true
+    },    
+    {
+        "Name": "Integration Tests",
+        "LocalPath": "no.Notifications",
+        "Repo": "https://slsys.visualstudio.com/LagoVista/_git/Nuviot.IntegrationTests",
+        "Solution": "IntegrationTests.sln",
+        "Private": false,
+        "Build": true
+    },
+    {
+        "Name": "Master Control Program",
+        "LocalPath": "mc.MasterControlProgram",
+        "Repo": "https://slsys.visualstudio.com/LagoVista/_git/MCP",
+        "Solution": "mcp.sln",
+        "Private": true,
+        "Build": true
+    }                                                    
+]
