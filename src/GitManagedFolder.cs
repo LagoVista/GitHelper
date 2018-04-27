@@ -11,6 +11,7 @@ using LagoVista.Core;
 using System.Windows.Threading;
 using System.Windows;
 using System.Text.RegularExpressions;
+using LagoVista.Core.Validation;
 
 namespace LagoVista.GitHelper
 {
@@ -27,6 +28,8 @@ namespace LagoVista.GitHelper
         public event PropertyChangedEventHandler PropertyChanged;
         private ConsoleWriter _consoleWriter;
         Dispatcher _dispatcher;
+
+        public event EventHandler<bool> IsBusyEvent;
 
         enum GitStatusParsingState
         {
@@ -48,6 +51,7 @@ namespace LagoVista.GitHelper
             PullCommand = new RelayCommand(PullFiles, CanPullFiles);
             CommitCommand = new RelayCommand(CommitFiles, CanCommitFiles);
             StageCommand = new RelayCommand(StageFiles, CanStageFiles);
+            RefreshCommand = new RelayCommand(Refresh, CanRefresh);
         }
 
         private void NotifyChanged(string propertyName)
@@ -61,35 +65,52 @@ namespace LagoVista.GitHelper
             });
         }
 
+        public bool CanRefresh()
+        {
+            return !IsBusy;
+        }
+
         public bool CanStashTempFiles()
         {
-            return true;
+            return !IsBusy;
         }
         public bool CanStageFiles()
         {
-            return Untracked.Any() || NotStaged.Any();
+            return (Untracked.Any() || NotStaged.Any()) && !IsBusy;
         }
         public bool CanCommitFiles()
         {
-            return Staged.Any();
+            return Staged.Any() && !IsBusy;
         }
 
         public bool CanPullFiles()
         {
-            return IsBehindOrigin;
+            return IsBehindOrigin && !IsBusy;
         }
         public bool CanPushFiles()
         {
-            return HasUnpushedCommits;
+            return HasUnpushedCommits && !IsBusy;
         }
         public bool CanRestoreTempFiles()
         {
-            return StashedFiles.Any();
+            return StashedFiles.Any() && !IsBusy;
+        }
+
+        private void RaiseAllButtonEnabledEvents()
+        {
+            RefreshCommand.RaiseCanExecuteChanged();
+            StashTempFilesCommand.RaiseCanExecuteChanged();
+            StageCommand.RaiseCanExecuteChanged();
+            CommitCommand.RaiseCanExecuteChanged();
+            PushCommand.RaiseCanExecuteChanged();
+            PullCommand.RaiseCanExecuteChanged();
+            RestoreTempFilesCommand.RaiseCanExecuteChanged();
         }
 
         #region Command Handlers
         public void StashTempFiles()
         {
+            IsBusy = true;
             _consoleWriter.AddMessage(LogType.Message, "Stashing temporary files.");
             _consoleWriter.Flush(true);
 
@@ -116,53 +137,62 @@ namespace LagoVista.GitHelper
                 _consoleWriter.AddMessage(LogType.Message, $"Stashed file {stashedFile.Label}");
             }
 
+            _consoleWriter.AddMessage(LogType.Success, $"Done stashing files - ({StashedFiles.Count}) file stashed.");
+
             _consoleWriter.Flush(false);
             _dispatcher.BeginInvoke(DispatcherPriority.Normal, (Action)delegate
             {
                 RestoreTempFilesCommand.RaiseCanExecuteChanged();
+                IsBusy = false;
             });
         }
 
         public void StageFiles()
         {
-            var proc = new Process
+            IsBusy = true;
+            Task.Run(() =>
             {
-                StartInfo = new ProcessStartInfo
+                var proc = new Process
                 {
-                    FileName = "git.exe",
-                    Arguments = "add . ",
-                    UseShellExecute = false,
-                    WorkingDirectory = Path,
-                    RedirectStandardOutput = true,
-                    CreateNoWindow = true
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "git.exe",
+                        Arguments = "add . ",
+                        UseShellExecute = false,
+                        WorkingDirectory = Path,
+                        RedirectStandardOutput = true,
+                        CreateNoWindow = true
+                    }
+                };
+
+                _consoleWriter.AddMessage(LogType.Message, $"cd {Path}");
+                _consoleWriter.AddMessage(LogType.Message, $"{proc.StartInfo.FileName} {proc.StartInfo.Arguments}");
+
+                proc.ErrorDataReceived += (sndr, msg) =>
+                {
+                    var line = proc.StandardError.ReadLine().Trim();
+                    _consoleWriter.AddMessage(LogType.Error, line);
+                };
+
+                proc.Start();
+
+                while (!proc.StandardOutput.EndOfStream)
+                {
+                    var line = proc.StandardOutput.ReadLine().Trim();
+                    _consoleWriter.AddMessage(LogType.Error, line);
                 }
-            };
 
-            _consoleWriter.AddMessage(LogType.Message, $"cd {Path}");
-            _consoleWriter.AddMessage(LogType.Message, $"{proc.StartInfo.FileName} {proc.StartInfo.Arguments}");
+                _consoleWriter.AddMessage(LogType.Message, "------------------------------");
+                _consoleWriter.Flush(true);
 
-            proc.ErrorDataReceived += (sndr, msg) =>
-            {
-                var line = proc.StandardError.ReadLine().Trim();
-                _consoleWriter.AddMessage(LogType.Error, line);
-            };
-
-            proc.Start();
-
-            while (!proc.StandardOutput.EndOfStream)
-            {
-                var line = proc.StandardOutput.ReadLine().Trim();
-                _consoleWriter.AddMessage(LogType.Error, line);
-            }
-
-            _consoleWriter.AddMessage(LogType.Message, "------------------------------");
-            _consoleWriter.Flush(true);
-
-            Scan(false);
+                Scan(false);
+            });
         }
 
         public void CommitFiles()
         {
+            IsBusy = true;
+
             if (String.IsNullOrEmpty(CommitMessage))
             {
                 MessageBox.Show("Commit message is required.");
@@ -171,92 +201,152 @@ namespace LagoVista.GitHelper
 
             CommitMessage = CommitMessage.Replace('"', '\'');
 
-            var proc = new Process
+            Task.Run(() =>
             {
-                StartInfo = new ProcessStartInfo
+                var proc = new Process
                 {
-                    FileName = "git.exe",
-                    Arguments = $"commit -m \"{CommitMessage}\"",
-                    UseShellExecute = false,
-                    WorkingDirectory = Path,
-                    RedirectStandardOutput = true,
-                    CreateNoWindow = true
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "git.exe",
+                        Arguments = $"commit -m \"{CommitMessage}\"",
+                        UseShellExecute = false,
+                        WorkingDirectory = Path,
+                        RedirectStandardOutput = true,
+                        CreateNoWindow = true
+                    }
+                };
+
+                _consoleWriter.AddMessage(LogType.Message, $"cd {Path}");
+                _consoleWriter.AddMessage(LogType.Message, $"{proc.StartInfo.FileName} {proc.StartInfo.Arguments}");
+
+                proc.ErrorDataReceived += (sndr, msg) =>
+                {
+                    var line = proc.StandardError.ReadLine().Trim();
+                    _consoleWriter.AddMessage(LogType.Error, line);
+                };
+
+                proc.Start();
+
+                while (!proc.StandardOutput.EndOfStream)
+                {
+                    var line = proc.StandardOutput.ReadLine().Trim();
+                    _consoleWriter.AddMessage(LogType.Message, line);
                 }
-            };
-
-            _consoleWriter.AddMessage(LogType.Message, $"cd {Path}");
-            _consoleWriter.AddMessage(LogType.Message, $"{proc.StartInfo.FileName} {proc.StartInfo.Arguments}");
-
-            proc.ErrorDataReceived += (sndr, msg) =>
-            {
-                var line = proc.StandardError.ReadLine().Trim();
-                _consoleWriter.AddMessage(LogType.Error, line);
-            };
-
-            proc.Start();
-
-            while (!proc.StandardOutput.EndOfStream)
-            {
-                var line = proc.StandardOutput.ReadLine().Trim();
-                _consoleWriter.AddMessage(LogType.Error, line);
-            }
 
 
-            _consoleWriter.AddMessage(LogType.Message, "------------------------------");
-            _consoleWriter.Flush(true);
-            CommitMessage = String.Empty;
+                _consoleWriter.AddMessage(LogType.Message, "------------------------------");
+                _consoleWriter.Flush(true);
+                CommitMessage = String.Empty;
 
-            Scan(false);
+                Scan(false);
+            });
         }
 
 
         public void PullFiles()
         {
-            var proc = new Process
+            IsBusy = true;
+
+            Task.Run(() =>
             {
-                StartInfo = new ProcessStartInfo
+                _isBusy = true;
+                var proc = new Process
                 {
-                    FileName = "git.exe",
-                    Arguments = "pull",
-                    UseShellExecute = false,
-                    WorkingDirectory = Path,
-                    RedirectStandardOutput = true,
-                    CreateNoWindow = true
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "git.exe",
+                        Arguments = "pull",
+                        UseShellExecute = false,
+                        WorkingDirectory = Path,
+                        RedirectStandardOutput = true,
+                        CreateNoWindow = true
+                    }
+                };
+
+                _consoleWriter.AddMessage(LogType.Message, $"cd {Path}");
+                _consoleWriter.AddMessage(LogType.Message, $"{proc.StartInfo.FileName} {proc.StartInfo.Arguments}");
+
+                proc.ErrorDataReceived += (sndr, msg) =>
+                {
+                    var line = proc.StandardError.ReadLine().Trim();
+                    _consoleWriter.AddMessage(LogType.Error, line);
+                };
+
+                proc.Start();
+
+                while (!proc.StandardOutput.EndOfStream)
+                {
+                    var line = proc.StandardOutput.ReadLine().Trim();
+                    _consoleWriter.AddMessage(LogType.Message, line);
                 }
-            };
 
-            _consoleWriter.AddMessage(LogType.Message, $"cd {Path}");
-            _consoleWriter.AddMessage(LogType.Message, $"{proc.StartInfo.FileName} {proc.StartInfo.Arguments}");
+                _consoleWriter.AddMessage(LogType.Message, "------------------------------");
+                _consoleWriter.Flush(true);
+                CommitMessage = String.Empty;
 
-            proc.ErrorDataReceived += (sndr, msg) =>
+                Scan(false);
+            });
+        }
+
+        public void Refresh()
+        {
+            IsBusy = true;
+
+            Task.Run(() =>
             {
-                var line = proc.StandardError.ReadLine().Trim();
-                _consoleWriter.AddMessage(LogType.Error, line);
-            };
-
-            proc.Start();
-
-            while (!proc.StandardOutput.EndOfStream)
-            {
-                var line = proc.StandardOutput.ReadLine().Trim();
-                _consoleWriter.AddMessage(LogType.Error, line);
-            }
-
-
-            _consoleWriter.AddMessage(LogType.Message, "------------------------------");
-            _consoleWriter.Flush(true);
-            CommitMessage = String.Empty;
-
-            Scan(false);
+                Scan(true);
+            });
         }
 
         public void PushFiles()
         {
+            IsBusy = true;
 
+            Task.Run(() =>
+            {
+                var proc = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "git.exe",
+                        Arguments = "push",
+                        UseShellExecute = false,
+                        WorkingDirectory = Path,
+                        RedirectStandardOutput = true,
+                        CreateNoWindow = true
+                    }
+                };
+
+                _consoleWriter.AddMessage(LogType.Message, $"cd {Path}");
+                _consoleWriter.AddMessage(LogType.Message, $"{proc.StartInfo.FileName} {proc.StartInfo.Arguments}");
+                _consoleWriter.Flush(true);
+
+                proc.ErrorDataReceived += (sndr, msg) =>
+                {
+                    var line = proc.StandardError.ReadLine().Trim();
+                    _consoleWriter.AddMessage(LogType.Error, line);
+                };
+
+                proc.Start();
+
+                while (!proc.StandardOutput.EndOfStream)
+                {
+                    var line = proc.StandardOutput.ReadLine().Trim();
+                    _consoleWriter.AddMessage(LogType.Message, line);
+                }
+
+
+                _consoleWriter.AddMessage(LogType.Message, "------------------------------");
+                _consoleWriter.Flush(false);
+
+                Scan(false);
+            });
         }
 
         public void RestoreTempFiles()
         {
+            IsBusy = true;
+
             _consoleWriter.AddMessage(LogType.Message, "Stashing temporary files.");
             _consoleWriter.Flush(true);
 
@@ -270,8 +360,10 @@ namespace LagoVista.GitHelper
                 _consoleWriter.AddMessage(LogType.Message, $"Restored: {stashedFile.Label}");
             }
             StashedFiles.Clear();
+            _consoleWriter.AddMessage(LogType.Success, $"Done restoring files.");
 
             _consoleWriter.Flush(false);
+            IsBusy = false;
         }
         #endregion
 
@@ -434,12 +526,29 @@ namespace LagoVista.GitHelper
         public RelayCommand PushCommand { get; private set; }
         public RelayCommand PullCommand { get; private set; }
         public RelayCommand StageCommand { get; private set; }
+        public RelayCommand RefreshCommand { get; private set; }
 
         public RelayCommand StashTempFilesCommand { get; private set; }
 
         public RelayCommand RestoreTempFilesCommand { get; private set; }
 
         public ObservableCollection<GitFileStatus> StashedFiles { get; private set; } = new ObservableCollection<GitFileStatus>();
+
+        private bool _isBusy = false;
+        public bool IsBusy
+        {
+            get { return _isBusy; }
+            set
+            {
+                if (_isBusy != value)
+                {
+                    IsBusyEvent?.Invoke(this, value);
+                    NotifyChanged(nameof(IsBusy));
+                    _isBusy = value;
+                    RaiseAllButtonEnabledEvents();
+                }
+            }
+        }
         #endregion
 
         #region Utility Methods
@@ -513,7 +622,7 @@ namespace LagoVista.GitHelper
 
             if (!success)
             {
-                _consoleWriter.Flush(true);
+                _consoleWriter.Flush();
                 return false;
             }
 
@@ -523,31 +632,37 @@ namespace LagoVista.GitHelper
                 _consoleWriter.AddMessage(LogType.Message, line);
             }
 
+            _consoleWriter.AddMessage(LogType.Success, "Updated from remote.");
+            _consoleWriter.AddMessage(LogType.Success, "");
+            _consoleWriter.Flush(false);
 
             return success;
         }
 
-        public bool Scan(bool clearConsoleWriter = true)
+        public bool Scan(bool autoClear = true, bool resetAllClear = true)
         {
             _dispatcher.BeginInvoke(DispatcherPriority.Normal, (Action)delegate
             {
+                IsBusy = true;
                 HasUnpushedCommits = false;
                 IsBehindOrigin = false;
                 Untracked.Clear();
                 NotStaged.Clear();
                 Staged.Clear();
                 Conflicted.Clear();
+                UnpushedCommitCount = 0;
+                BehindOriginCount = 0;
             });
 
             var start = DateTime.Now;
 
             _consoleWriter.AddMessage(LogType.Message, $"cd {Path}");
+            _consoleWriter.Flush(autoClear);
 
             if (!UpdateFromRemote())
             {
                 return false;
             }
-
 
             var err = false;
 
@@ -564,7 +679,7 @@ namespace LagoVista.GitHelper
                 }
             };
 
-            _consoleWriter.AddMessage(LogType.Message, $"git status {Path}");
+            _consoleWriter.AddMessage(LogType.Message, $"git status -uno");
 
             proc.ErrorDataReceived += (sndr, msg) =>
             {
@@ -599,6 +714,11 @@ namespace LagoVista.GitHelper
                 var line = proc.StandardOutput.ReadLine().Trim();
                 _consoleWriter.AddMessage(LogType.Message, line);
 
+                if (String.IsNullOrEmpty(line.Trim()))
+                {
+                    continue;
+                }
+
                 var behindRegEx = new Regex("Your branch is behind 'origin\\/master' by (\\d+) commit");
                 var behindMatch = behindRegEx.Match(line);
                 if (behindMatch.Success)
@@ -608,6 +728,7 @@ namespace LagoVista.GitHelper
                     {
                         BehindOriginCount = Convert.ToInt32(behindMatch.Groups[1].Value);
                     }
+                    continue;
                 }
 
                 var aheadRegEx = new Regex("Your branch is ahead of 'origin\\/master' by (\\d+) commit.");
@@ -619,6 +740,13 @@ namespace LagoVista.GitHelper
                     {
                         UnpushedCommitCount = Convert.ToInt32(match.Groups[1].Value);
                     }
+                    continue;
+                }
+
+                if (line.StartsWith("Nothing to commit"))
+                {
+                    scanState = GitStatusParsingState.Idle;
+                    continue;
                 }
 
                 if (line == "Changes not staged for commit:")
@@ -645,6 +773,13 @@ namespace LagoVista.GitHelper
                     continue;
                 }
 
+                if (line.StartsWith("Untracked files not listed"))
+                {
+                    scanState = GitStatusParsingState.Idle;
+                    continue;
+                }
+
+
                 if (!String.IsNullOrEmpty(line.Trim()) &&
                     !line.Contains("(use \"git") &&
                     line != "nothing added to commit but untracked files present (use \"git add\" to track)"
@@ -663,7 +798,7 @@ namespace LagoVista.GitHelper
 
                     line = line.Replace("modified:", "").Trim().Replace('/', '\\');
                     line = line.Replace("new file:", "").Trim().Replace('/', '\\');
-                    var fileStatus = new GitFileStatus()
+                    var fileStatus = new GitFileStatus(_dispatcher)
                     {
                         Directory = Path,
                         Label = line.Trim(),
@@ -705,6 +840,11 @@ namespace LagoVista.GitHelper
 
             _dispatcher.BeginInvoke(DispatcherPriority.Normal, (Action)delegate
             {
+                if (resetAllClear)
+                {
+                    IsBusy = false;
+                }
+
                 foreach (var file in stagedFilesToAdd) Staged.Add(file);
                 foreach (var file in untrackedFilesToAdd) Untracked.Add(file);
                 foreach (var file in notStagedFilesToAdd) NotStaged.Add(file);
@@ -719,14 +859,11 @@ namespace LagoVista.GitHelper
                             StagedFileStatus == CurrentStatus.Dirty ||
                             HasUnpushedCommits || IsBehindOrigin;
 
-                StageCommand.RaiseCanExecuteChanged();
-                CommitCommand.RaiseCanExecuteChanged();
+                NotifyChanged(nameof(Label));
             });
 
-            _consoleWriter.AddMessage(LogType.Message, $"Updated in {DateTime.Now - start} ");
-            _consoleWriter.Flush(clearConsoleWriter);
-
-            NotifyChanged(nameof(Label));
+            _consoleWriter.AddMessage(LogType.Success, $"Update success in {DateTime.Now - start} ");
+            _consoleWriter.Flush();
 
             return true;
         }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Text.RegularExpressions;
+using System.Windows.Threading;
 
 namespace LagoVista.GitHelper
 {
@@ -27,11 +28,21 @@ namespace LagoVista.GitHelper
 
     public class GitFileStatus : INotifyPropertyChanged
     {
+        Dispatcher _dispatcher;
+
+        public GitFileStatus(Dispatcher dispatcher)
+        {
+            _dispatcher = dispatcher;
+        }
+
         private void NotifyChanged(string propertyName)
         {
             if (PropertyChanged != null)
             {
-                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+                _dispatcher.BeginInvoke((Action)delegate
+                {
+                    PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+                });
             }
         }
 
@@ -104,9 +115,10 @@ namespace LagoVista.GitHelper
                 return;
             }
 
-            if (FileType == FileTypes.SourceFile)
+            if (State == GitFileState.Staged)
             {
-
+                IsDirty = true;
+                return;
             }
 
             var lines = Changes.Split('\r');
@@ -126,8 +138,6 @@ namespace LagoVista.GitHelper
                     }
                 }
             }
-
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(GitManagedFolder.CurrentStatus)));
         }
     }
 }

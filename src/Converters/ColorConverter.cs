@@ -15,7 +15,7 @@ namespace LagoVista.GitHelper.Converters
         {
             if (value is CurrentStatus fileStatus)
             {
-                return fileStatus == CurrentStatus.Dirty ? Brushes.Green : Brushes.LightGray;
+                return fileStatus == CurrentStatus.Dirty ? Brushes.Green : Brushes.Gray;
             }
 
             return Brushes.Black;

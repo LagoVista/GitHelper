@@ -33,13 +33,22 @@ namespace LagoVista.GitHelper
 
             _builder = new Builder(rootPath, _consoleWriter);
 
-            BuildNowCommand = new RelayCommand(BuildNow);
+            BuildNowCommand = new RelayCommand(BuildNow, CanBuild);
+            RefreshCommand = new RelayCommand(Refresh, CanRefresh);
         }
 
+        public bool CanBuild(Object obj )
+        {
+            return !IsBusy;
+        }
+
+        public bool CanRefresh(Object obj)
+        {
+            return !IsBusy;
+        }
 
         public event PropertyChangedEventHandler PropertyChanged;
         List<FileSystemWatcher> _fileWatchers = new List<FileSystemWatcher>();
-
 
         private void NotifyChanged(string propertyName)
         {
@@ -49,8 +58,15 @@ namespace LagoVista.GitHelper
             }
         }
 
+        public void Refresh(Object obj)
+        {
+            ScanNow();
+        }
+
         public void ScanNow()
         {
+            IsBusy = true;
+
             var dirs = System.IO.Directory.GetDirectories(_rootPath);
             ScanMax = dirs.Length;
             ScanVisibility = Visibility.Visible;
@@ -59,7 +75,7 @@ namespace LagoVista.GitHelper
             {
                 Folders = new ObservableCollection<GitManagedFolder>();
 
-                foreach (var dir in dirs.Take(3))
+                foreach (var dir in dirs.Take(8))
                 {
                     _dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, (Action)delegate
                     {
@@ -67,10 +83,11 @@ namespace LagoVista.GitHelper
                         ScanProgress = ScanProgress + 1.0;
                     });
 
-
                     var folder = ScanTree(dir);
+                    IsBusy = true;
                     if (folder != null)
                     {
+                        folder.IsBusyEvent += (sndr, args) => IsBusy = args;
                         var fileWatcher = new FileSystemWatcher(dir, "*");
                         fileWatcher.IncludeSubdirectories = true;
                         fileWatcher.EnableRaisingEvents = true;
@@ -84,7 +101,6 @@ namespace LagoVista.GitHelper
                         _dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, (Action)delegate
                         {
                             Folders.Add(folder);
-
                         });
                     }
                 }
@@ -93,10 +109,31 @@ namespace LagoVista.GitHelper
                 {
                     Status = "Ready";
                     ScanVisibility = Visibility.Collapsed;
+                    IsBusy = false;
                 });
             });
 
         }
+
+        private bool _isBusy = false;
+        public bool IsBusy
+        {
+            get { return _isBusy; }
+            set
+            {
+                if (_isBusy != value)
+                {
+                    _isBusy = value;
+                    _dispatcher.BeginInvoke(DispatcherPriority.Normal, (Action)delegate
+                    {
+                        NotifyChanged(nameof(IsBusy));
+                        RefreshCommand.RaiseCanExecuteChanged();
+                        BuildNowCommand.RaiseCanExecuteChanged();
+                    });
+                }
+            }
+        }
+
 
         public void BuildNow(Object obj)
         {
@@ -114,6 +151,12 @@ namespace LagoVista.GitHelper
                     _consoleWriter.AddMessage(LogType.Error, "Build Failed!");
                 }
                 _consoleWriter.Flush(false);
+
+                _dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, (Action)delegate
+                {
+                    Status = "Ready";
+                    ScanVisibility = Visibility.Collapsed;
+                });
             });
         }
 
@@ -197,7 +240,7 @@ namespace LagoVista.GitHelper
                 if (file == null) file = folder.Staged.Where(fil => fil.FullPath == fullFileName).FirstOrDefault();
                 if (file == null)
                 {
-                    file = new GitFileStatus()
+                    file = new GitFileStatus(this._dispatcher)
                     {
                         Directory = directoryName,
                         FullPath = fullFileName,
@@ -442,9 +485,9 @@ namespace LagoVista.GitHelper
             var folder = new GitManagedFolder(_dispatcher, _consoleWriter);
             folder.Label = dir.Split('\\').Last();
             folder.Path = dir;
-            folder.Scan();
+            var result = folder.Scan(resetAllClear:false);
 
-            return folder;
+            return result ? folder :null;
         }
 
         #region Properties
@@ -547,12 +590,14 @@ namespace LagoVista.GitHelper
 
                     Task.Run(() =>
                     {
+                        IsBusy = true;
                         value.Scan(true);
 
                         _dispatcher.BeginInvoke((Action)delegate
                        {
                            _currentFolder = value;
                            Status = "Ready " + _currentFolder.Label;
+                           NotifyChanged(nameof(CurrentFolder));
                        });
                     });
                 }
@@ -563,7 +608,9 @@ namespace LagoVista.GitHelper
         #endregion
 
         #region Commands
-        public ICommand BuildNowCommand { get; private set; }
+        public RelayCommand BuildNowCommand { get; private set; }
+
+        public RelayCommand RefreshCommand { get; private set; }
 
         #endregion
     }

@@ -7,194 +7,214 @@
         xmlns:cvt="clr-namespace:LagoVista.GitHelper.Converters"
         Title="NuvIoT Build Tools" Height="950" Width="1800">
 
-    <TabControl  x:Name="Page">
-        <TabControl.Resources>
-            <cvt:ColorConverter x:Key="ColorConverter" />
-            <cvt:NotNullVisibilityConverter x:Key="NotNullVisibilityConverter" />
-            <cvt:LogTypeColorCodeConverter x:Key="LogTypeColorCodeConverter" />
-        </TabControl.Resources>
+    <Grid x:Name="Page">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="auto" />
+            <RowDefinition Height="auto" />
+        </Grid.RowDefinitions>
+        <TabControl  >
+            <TabControl.Resources>
+                <cvt:ColorConverter x:Key="ColorConverter" />
+                <cvt:NotNullVisibilityConverter x:Key="NotNullVisibilityConverter" />
+                <cvt:LogTypeColorCodeConverter x:Key="LogTypeColorCodeConverter" />
+            </TabControl.Resources>
 
-        <TabItem Header="GIT File Management">
-            <Grid >
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="500"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="auto"/>
-                    <RowDefinition Height="20" />
-                </Grid.RowDefinitions>
-
-                <Grid Grid.Row="0">
+            <TabItem Header="GIT File Management">
+                <Grid >
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="300"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="auto" />
-                        <RowDefinition Height="*" />
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="auto"/>
+                        <RowDefinition Height="20" />
                     </Grid.RowDefinitions>
-                    <Button x:Name="Refresh" Content="Refresh" Click="Refresh_Click" />
 
-                    <TreeView IsEnabled="True" x:Name="FolderTree" Grid.Row="1" ItemsSource="{Binding Path=Folders}" SelectedItemChanged="FolderTree_SelectedItemChanged" >
-                        <TreeView.Resources>
-                            <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="Silver" />
-                            <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="Black" />
-                            <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="#E0E0E0" />
-                            <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="Black" />
-                            <ContextMenu x:Key="CommitFilesMenuPopup">
-                                <MenuItem Header="Commit Files"/>
-                                <MenuItem Header="Reset Files"/>
-                            </ContextMenu>
-                            <ContextMenu x:Key="ScaleItemPopup">
-                                <MenuItem Header="Remove Scale"/>
-                            </ContextMenu>
-                        </TreeView.Resources>
-                        <TreeView.ItemTemplate>
-                            <HierarchicalDataTemplate>
-                                <TreeViewItem Header="{Binding Label}" Foreground="{Binding Path=CurrentStatus, Converter={StaticResource ColorConverter}}"                                      
+                    <Grid Grid.Row="0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <Button Command="{Binding RefreshCommand}" Content="Refresh" Width="120" Height="30" HorizontalAlignment="Left" />
+
+                        <TreeView IsEnabled="True" x:Name="FolderTree" Grid.Row="1" ItemsSource="{Binding Path=Folders}" SelectedItemChanged="FolderTree_SelectedItemChanged" >
+                            <TreeView.Resources>
+                                <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="Silver" />
+                                <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="Black" />
+                                <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="#E0E0E0" />
+                                <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="Black" />
+                                <ContextMenu x:Key="CommitFilesMenuPopup">
+                                    <MenuItem Header="Commit Files"/>
+                                    <MenuItem Header="Reset Files"/>
+                                </ContextMenu>
+                                <ContextMenu x:Key="ScaleItemPopup">
+                                    <MenuItem Header="Remove Scale"/>
+                                </ContextMenu>
+                            </TreeView.Resources>
+                            <TreeView.ItemTemplate>
+                                <HierarchicalDataTemplate>
+                                    <TreeViewItem Header="{Binding Label}" Foreground="{Binding Path=CurrentStatus, Converter={StaticResource ColorConverter}}"                                      
                                       MouseLeftButtonUp="TreeViewItem_MouseLeftButtonUp_StagedFiles" 
                                       MouseRightButtonUp="TreeViewItem_MouseLeftButtonUp_StagedFiles">
-                                    <TreeViewItem Header="Untracked Files" ItemsSource="{Binding Untracked}" Foreground="{Binding Path=UntrackedFileStatus, Converter={StaticResource ColorConverter}}" MouseLeftButtonUp="TreeViewItem_MouseLeftButtonUp_StagedFiles" MouseRightButtonUp="TreeViewItem_MouseLeftButtonUp_StagedFiles">
-                                        <TreeViewItem.ItemTemplate>
-                                            <HierarchicalDataTemplate >
-                                                <TreeViewItem Header="{Binding Label}"  MouseLeftButtonUp="TreeViewItem_MouseLeftButtonUp" Foreground="{Binding Path=CurrentStatus, Converter={StaticResource ColorConverter}}"></TreeViewItem>
-                                            </HierarchicalDataTemplate>
-                                        </TreeViewItem.ItemTemplate>
-                                    </TreeViewItem>
+                                        <TreeViewItem Header="Untracked Files" ItemsSource="{Binding Untracked}" Foreground="{Binding Path=UntrackedFileStatus, Converter={StaticResource ColorConverter}}" MouseLeftButtonUp="TreeViewItem_MouseLeftButtonUp_StagedFiles" MouseRightButtonUp="TreeViewItem_MouseLeftButtonUp_StagedFiles">
+                                            <TreeViewItem.ItemTemplate>
+                                                <HierarchicalDataTemplate >
+                                                    <TreeViewItem Header="{Binding Label}"  MouseLeftButtonUp="TreeViewItem_MouseLeftButtonUp" Foreground="{Binding Path=CurrentStatus, Converter={StaticResource ColorConverter}}"></TreeViewItem>
+                                                </HierarchicalDataTemplate>
+                                            </TreeViewItem.ItemTemplate>
+                                        </TreeViewItem>
 
-                                    <TreeViewItem Header="Not Staged Files" MouseLeftButtonUp="TreeViewItem_MouseLeftButtonUp_StagedFiles" MouseRightButtonUp="TreeViewItem_MouseLeftButtonUp_StagedFiles"
+                                        <TreeViewItem Header="Not Staged Files" MouseLeftButtonUp="TreeViewItem_MouseLeftButtonUp_StagedFiles" MouseRightButtonUp="TreeViewItem_MouseLeftButtonUp_StagedFiles"
                                           ItemsSource="{Binding NotStaged}" Foreground="{Binding Path=NotStagedFileStatus, Converter={StaticResource ColorConverter}}">
-                                        <TreeViewItem.ItemContainerStyle>
-                                            <Style TargetType="{x:Type TreeViewItem}">
-                                                <Setter Property="ContextMenu" Value="{StaticResource CommitFilesMenuPopup}"/>
-                                            </Style>
-                                        </TreeViewItem.ItemContainerStyle>
-                                        <TreeViewItem.ItemTemplate>
-                                            <HierarchicalDataTemplate >
-                                                <TreeViewItem Header="{Binding Label}"  MouseLeftButtonUp="TreeViewItem_MouseLeftButtonUp" MouseRightButtonUp="TreeViewItem_MouseLeftButtonUp" Foreground="{Binding CurrentStatus, Converter={StaticResource ColorConverter}}" >
-                                                </TreeViewItem>
-                                            </HierarchicalDataTemplate>
-                                        </TreeViewItem.ItemTemplate>
+                                            <TreeViewItem.ItemContainerStyle>
+                                                <Style TargetType="{x:Type TreeViewItem}">
+                                                    <Setter Property="ContextMenu" Value="{StaticResource CommitFilesMenuPopup}"/>
+                                                </Style>
+                                            </TreeViewItem.ItemContainerStyle>
+                                            <TreeViewItem.ItemTemplate>
+                                                <HierarchicalDataTemplate >
+                                                    <TreeViewItem Header="{Binding Label}"  MouseLeftButtonUp="TreeViewItem_MouseLeftButtonUp" MouseRightButtonUp="TreeViewItem_MouseLeftButtonUp" Foreground="{Binding CurrentStatus, Converter={StaticResource ColorConverter}}" >
+                                                    </TreeViewItem>
+                                                </HierarchicalDataTemplate>
+                                            </TreeViewItem.ItemTemplate>
+                                        </TreeViewItem>
+
+                                        <TreeViewItem Header="Staged Files" ItemsSource="{Binding Staged}" Foreground="{Binding Path=StagedFileStatus, Converter={StaticResource ColorConverter}}" MouseLeftButtonUp="TreeViewItem_MouseLeftButtonUp_StagedFiles" MouseRightButtonUp="TreeViewItem_MouseLeftButtonUp_StagedFiles">
+                                            <TreeViewItem.ItemTemplate>
+                                                <HierarchicalDataTemplate >
+                                                    <TreeViewItem Header="{Binding Label}" MouseLeftButtonUp="TreeViewItem_MouseLeftButtonUp" MouseRightButtonUp="TreeViewItem_MouseLeftButtonUp"  Foreground="Green"></TreeViewItem>
+                                                </HierarchicalDataTemplate>
+                                            </TreeViewItem.ItemTemplate>
+                                        </TreeViewItem>
+
+                                        <TreeViewItem Header="Conflicted Files" ItemsSource="{Binding Conflicted}" Foreground="{Binding Path=ConflictFileStatus, Converter={StaticResource ColorConverter}}" MouseLeftButtonUp="TreeViewItem_MouseLeftButtonUp_StagedFiles" MouseRightButtonUp="TreeViewItem_MouseLeftButtonUp_StagedFiles">
+                                            <TreeViewItem.ItemTemplate>
+                                                <HierarchicalDataTemplate >
+                                                    <TreeViewItem Header="{Binding Label}"  MouseLeftButtonUp="TreeViewItem_MouseLeftButtonUp" Foreground="{Binding Path=CurrentStatus, Converter={StaticResource ColorConverter}}"></TreeViewItem>
+                                                </HierarchicalDataTemplate>
+                                            </TreeViewItem.ItemTemplate>
+                                        </TreeViewItem>
                                     </TreeViewItem>
-
-                                    <TreeViewItem Header="Staged Files" ItemsSource="{Binding Staged}" Foreground="{Binding Path=StagedFileStatus, Converter={StaticResource ColorConverter}}" MouseLeftButtonUp="TreeViewItem_MouseLeftButtonUp_StagedFiles" MouseRightButtonUp="TreeViewItem_MouseLeftButtonUp_StagedFiles">
-                                        <TreeViewItem.ItemTemplate>
-                                            <HierarchicalDataTemplate >
-                                                <TreeViewItem Header="{Binding Label}" MouseLeftButtonUp="TreeViewItem_MouseLeftButtonUp" MouseRightButtonUp="TreeViewItem_MouseLeftButtonUp"  Foreground="Green"></TreeViewItem>
-                                            </HierarchicalDataTemplate>
-                                        </TreeViewItem.ItemTemplate>
-                                    </TreeViewItem>
-
-                                    <TreeViewItem Header="Conflicted Files" ItemsSource="{Binding Conflicted}" Foreground="{Binding Path=ConflictFileStatus, Converter={StaticResource ColorConverter}}" MouseLeftButtonUp="TreeViewItem_MouseLeftButtonUp_StagedFiles" MouseRightButtonUp="TreeViewItem_MouseLeftButtonUp_StagedFiles">
-                                        <TreeViewItem.ItemTemplate>
-                                            <HierarchicalDataTemplate >
-                                                <TreeViewItem Header="{Binding Label}"  MouseLeftButtonUp="TreeViewItem_MouseLeftButtonUp" Foreground="{Binding Path=CurrentStatus, Converter={StaticResource ColorConverter}}"></TreeViewItem>
-                                            </HierarchicalDataTemplate>
-                                        </TreeViewItem.ItemTemplate>
-                                    </TreeViewItem>
-                                </TreeViewItem>
-                            </HierarchicalDataTemplate>
-                        </TreeView.ItemTemplate>
-                    </TreeView>
-                </Grid>
-                <Grid Grid.Column="1" Grid.Row="0" >
-                    <Grid Visibility="{Binding Path=CurrentFolder, Converter={StaticResource NotNullVisibilityConverter}, FallbackValue=Collapsed}">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="auto" />
-                            <RowDefinition Height="auto" />
-                            <RowDefinition Height="*" />
-                            <RowDefinition Height="auto" />
-                            <RowDefinition Height="*" />
-                            <RowDefinition Height="auto" />
-                            <RowDefinition Height="*" />
-                            <RowDefinition Height="auto" />
-                            <RowDefinition Height="*" />
-                            <RowDefinition Height="auto" />
-                            <RowDefinition Height="auto" />
-                            <RowDefinition Height="auto" />
-                            <RowDefinition Height="auto" />
-                        </Grid.RowDefinitions>
-                        <TextBlock Text="{Binding CurrentFolder.Label}"></TextBlock>
-
-                        <Label Content="Untracked files" Grid.Row="1"></Label>
-                        <ListBox ItemsSource="{Binding CurrentFolder.Untracked}" Grid.Row="2" FontFamily="Consolas" >
-                            <ListBox.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Label}" />
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-
-                        <Label Content="Files ready to stage" Grid.Row="3"></Label>
-                        <ListBox ItemsSource="{Binding CurrentFolder.NotStaged}" Grid.Row="4" FontFamily="Consolas" >
-                            <ListBox.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Label}" />
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-
-                        <Label Content="Files ready to commit" Grid.Row="5"></Label>
-                        <ListBox ItemsSource="{Binding CurrentFolder.Staged}" Grid.Row="6" FontFamily="Consolas" >
-                            <ListBox.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Label}" />
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-
-                        <Label Content="Conflicted" Grid.Row="7"></Label>
-                        <ListBox ItemsSource="{Binding CurrentFolder.Conflicted}" Grid.Row="8" FontFamily="Consolas" >
-                            <ListBox.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Label}" />
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-
-
-                        <StackPanel Orientation="Horizontal" Grid.Row="9">
-                            <Label Content="Has Unpushed Commits: " ></Label>
-                            <Label Content="{Binding CurrentFolder.HasUnpushedCommits}" ></Label>
-                            <Label Content="Is Behind Origin: " ></Label>
-                            <Label Content="{Binding CurrentFolder.IsBehindOrigin}" ></Label>
-                        </StackPanel>
-
-                        <Label Content="Commit Message" Grid.Row="10" Height="30" />
-                        <TextBox Text="{Binding CurrentFolder.CommitMessage, Mode=TwoWay}" Grid.Row="11" Height="120" TextWrapping="Wrap" />
-
-                        <StackPanel Grid.Row="12" >
-                            <StackPanel Orientation="Horizontal">
-                                <Button Content="Stash Temp Files" Command="{Binding CurrentFolder.StashTempFilesCommand}" Width="120" />
-                                <Button Content="Stage Files" Command="{Binding CurrentFolder.StageCommand}" Width="120" />
-                                <Button Content="Commit Files" Command="{Binding CurrentFolder.CommitCommand}" Width="120" />
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal">
-                                <Button Content="Pull Files" Command="{Binding CurrentFolder.PullCommand}"  Width="120" />
-                                <Button Content="Push Files" Command="{Binding CurrentFolder.PushCommand}" Width="120"/>
-                                <Button Content="Restore Temp Files" Command="{Binding CurrentFolder.RestoreTempFilesCommand}" Width="120" />
-                            </StackPanel>
-                        </StackPanel>
+                                </HierarchicalDataTemplate>
+                            </TreeView.ItemTemplate>
+                        </TreeView>
                     </Grid>
-                    <Grid  Visibility="{Binding Path=CurrentFile, Converter={StaticResource NotNullVisibilityConverter}, FallbackValue=Collapsed}">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="auto" />
-                            <RowDefinition Height="auto" />
-                            <RowDefinition Height="auto" />
-                            <RowDefinition Height="auto" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
-                        <TextBlock Text="{Binding CurrentFile.Directory}" FontSize="14" FontFamily="Consolas"  Margin="20,0,0,10" />
-                        <TextBlock Text="{Binding CurrentFile.Label}" Grid.Row="1" FontSize="14" FontFamily="Consolas"  Margin="20,0,0,10" />
-                        <TextBlock Text="{Binding CurrentFile.State}" Grid.Row="2" FontSize="14" FontFamily="Consolas"  Margin="20,0,0,10" />
-                        <TextBlock Text="{Binding CurrentFile.IsDirty}" Grid.Row="3" FontSize="14" FontFamily="Consolas"  Margin="20,0,0,20" />
+                    <Grid Grid.Column="1" Grid.Row="0" >
+                        <Grid Visibility="{Binding Path=CurrentFolder, Converter={StaticResource NotNullVisibilityConverter}, FallbackValue=Collapsed}">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="auto" />
+                                <RowDefinition Height="auto" />
+                                <RowDefinition Height="auto" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="auto" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="auto" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="auto" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="auto" />
+                                <RowDefinition Height="auto" />
+                                <RowDefinition Height="auto" />
+                            </Grid.RowDefinitions>
+                            <Button Content="Refresh" HorizontalAlignment="Left" Command="{Binding Path=CurrentFolder.RefreshCommand}" Width="120" Height="30" />
+                            <Label Grid.Row="1" FontSize="24" Content="{Binding CurrentFolder.Label}"></Label>
 
-                        <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Visible" Grid.Row="4" >
-                            <TextBox IsReadOnly="true" TextWrapping="NoWrap"  Text="{Binding Path=CurrentFile.Changes}" FontFamily="Consolas"  x:Name="ConsoleOutput" xml:space="preserve"  />
+                            <Label Content="Untracked files" Grid.Row="2"></Label>
+                            <ListBox ItemsSource="{Binding CurrentFolder.Untracked}" Grid.Row="3" FontFamily="Consolas" Margin="0,0,0,8" >
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Label}" Foreground="{Binding Path=CurrentStatus, Converter={StaticResource ColorConverter}}" />
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+
+                            <Label Content="Files ready to stage" Grid.Row="4"></Label>
+                            <ListBox ItemsSource="{Binding CurrentFolder.NotStaged}" Grid.Row="5" FontFamily="Consolas" Margin="0,0,0,8"  >
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Label}" Foreground="{Binding Path=CurrentStatus, Converter={StaticResource ColorConverter}}" />
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+
+                            <Label Content="Files ready to commit" Grid.Row="6"></Label>
+                            <ListBox ItemsSource="{Binding CurrentFolder.Staged}" Grid.Row="7" FontFamily="Consolas" Margin="0,0,0,8"  >
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Label}" Foreground="{Binding Path=CurrentStatus, Converter={StaticResource ColorConverter}}" />
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+
+                            <Label Content="Conflicted" Grid.Row="8"></Label>
+                            <ListBox ItemsSource="{Binding CurrentFolder.Conflicted}" Grid.Row="9" FontFamily="Consolas" Margin="0,0,0,8"  >
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Label}" Foreground="{Binding Path=CurrentStatus, Converter={StaticResource ColorConverter}}" />
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+
+                            <Label Content="Commit Message" Grid.Row="10" Height="30" />
+                            <TextBox Text="{Binding CurrentFolder.CommitMessage, Mode=TwoWay}" Grid.Row="11" Height="120" TextWrapping="Wrap" />
+
+                            <StackPanel Grid.Row="12" >
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="Stash Temp Files" Command="{Binding CurrentFolder.StashTempFilesCommand}" Width="120" />
+                                    <Button Content="Stage Files" Command="{Binding CurrentFolder.StageCommand}" Width="120" />
+                                    <Button Content="Commit Files" Command="{Binding CurrentFolder.CommitCommand}" Width="120" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="Pull Files" Command="{Binding CurrentFolder.PullCommand}"  Width="120" />
+                                    <Button Content="Push Files" Command="{Binding CurrentFolder.PushCommand}" Width="120"/>
+                                    <Button Content="Restore Temp Files" Command="{Binding CurrentFolder.RestoreTempFilesCommand}" Width="120" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Grid>
+                        <Grid  Visibility="{Binding Path=CurrentFile, Converter={StaticResource NotNullVisibilityConverter}, FallbackValue=Collapsed}">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="auto" />
+                                <RowDefinition Height="auto" />
+                                <RowDefinition Height="auto" />
+                                <RowDefinition Height="auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="{Binding CurrentFile.Directory}" FontSize="14" FontFamily="Consolas"  Margin="20,0,0,10" />
+                            <TextBlock Text="{Binding CurrentFile.Label}" Grid.Row="1" FontSize="14" FontFamily="Consolas"  Margin="20,0,0,10" />
+                            <TextBlock Text="{Binding CurrentFile.State}" Grid.Row="2" FontSize="14" FontFamily="Consolas"  Margin="20,0,0,10" />
+                            <TextBlock Text="{Binding CurrentFile.IsDirty}" Grid.Row="3" FontSize="14" FontFamily="Consolas"  Margin="20,0,0,20" />
+
+                            <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Visible" Grid.Row="4" >
+                                <TextBox IsReadOnly="true" TextWrapping="NoWrap"  Text="{Binding Path=CurrentFile.Changes}" FontFamily="Consolas"  x:Name="ConsoleOutput" xml:space="preserve"  />
                 </ScrollViewer>
+                        </Grid>
+                    </Grid>
+                    <Grid Grid.Column="2">
+                        <ListView ItemsSource="{Binding ConsoleLogOutput}" Background="Blue" x:Name="MainOutputWindow" Grid.Row="1" Grid.Column="1" >
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock FontSize="12" Text="{Binding Output}" FontFamily="Consolas" Foreground="{Binding LogType, Converter={StaticResource LogTypeColorCodeConverter}}" />
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
                     </Grid>
                 </Grid>
-                <Grid Grid.Column="2">
-                    <ListView ItemsSource="{Binding ConsoleLogOutput}" Background="Blue" x:Name="MainOutputWindow" Grid.Row="1" Grid.Column="1" >
+            </TabItem>
+            <TabItem Header="Build Process">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="40" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="200" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Button Command="{Binding BuildNowCommand}" Content="Build Now" Width="120"  />
+                    <ListView ItemsSource="{Binding ConsoleLogOutput}" Background="Blue" x:Name="OutputWindow" Grid.Row="0" Grid.RowSpan="2" Grid.Column="1" >
                         <ListView.ItemTemplate>
                             <DataTemplate>
                                 <TextBlock FontSize="12" Text="{Binding Output}" FontFamily="Consolas" Foreground="{Binding LogType, Converter={StaticResource LogTypeColorCodeConverter}}" />
@@ -202,32 +222,14 @@
                         </ListView.ItemTemplate>
                     </ListView>
                 </Grid>
-                <ProgressBar  Maximum="{Binding Path=ScanMax}" Grid.Row="1" Height="20" Value="{Binding ScanProgress}" Visibility="{ Binding ScanVisibility}" Grid.ColumnSpan="3"></ProgressBar>
-                <TextBlock Grid.Row="2" x:Name="Status" Grid.ColumnSpan="3" Text="{Binding Path=Status}" />
-            
-            </Grid>
-            
-        </TabItem>
-        <TabItem Header="Build Process">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="40" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="200" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <Button Command="{Binding BuildNowCommand}" Content="Build Now" Width="120"  />
-                <ListView ItemsSource="{Binding ConsoleLogOutput}" Background="Blue" x:Name="OutputWindow" Grid.Row="1" Grid.Column="1" >
-                    <ListView.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock FontSize="12" Text="{Binding Output}" FontFamily="Consolas" Foreground="{Binding LogType, Converter={StaticResource LogTypeColorCodeConverter}}" />
-                        </DataTemplate>
-                    </ListView.ItemTemplate>
-                </ListView>
-            </Grid>
 
-        </TabItem>
-    </TabControl>
+            </TabItem>
+        </TabControl>
+        <ProgressBar  Maximum="{Binding Path=ScanMax}" Grid.Row="1" Height="20" Value="{Binding ScanProgress}" Visibility="{ Binding ScanVisibility}" Grid.ColumnSpan="3"></ProgressBar>
+        <StatusBar Grid.Row="2" Grid.ColumnSpan="3">
+            <StatusBarItem>
+                <TextBlock Grid.Row="2" x:Name="Status" Grid.ColumnSpan="3" Text="{Binding Path=Status}" />
+            </StatusBarItem>
+        </StatusBar>
+    </Grid>
 </Window>
