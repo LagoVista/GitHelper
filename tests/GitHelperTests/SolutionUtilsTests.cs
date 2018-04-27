@@ -72,7 +72,7 @@ namespace GitHelperTests
 
             foreach (var solution in items.Result)
             {
-                _nugetHelpers.ApplyToCSProjects(rootPath, solution, nugetVersion);
+                _nugetHelpers.ApplyToCSProjects(rootPath, solution, nugetVersion,new List<string>());
                 _nugetHelpers.ApplyToAllNuspecFiles(rootPath, solution, nugetVersion);
             }
         }
@@ -109,10 +109,10 @@ namespace GitHelperTests
             var items = _solutionHelper.LoadSolutions(rootPath);
             var nugetVersion = _nugetHelpers.GenerateNugetVersion(1, 3, DateTime.Now);
 
-            _nugetHelpers.ApplyToCSProjects(rootPath, items.Result.First(), nugetVersion);
+            _nugetHelpers.ApplyToCSProjects(rootPath, items.Result.First(), nugetVersion, new List<string>());
             _nugetHelpers.ApplyToAllNuspecFiles(rootPath, items.Result.First(), nugetVersion);
 
-            _nugetHelpers.ApplyToCSProjects(rootPath, items.Result[1], nugetVersion);
+            _nugetHelpers.ApplyToCSProjects(rootPath, items.Result[1], nugetVersion, new List<string>());
             _nugetHelpers.ApplyToAllNuspecFiles(rootPath, items.Result[1], nugetVersion);
 
             FullBuild(items.Result[0]);

@@ -2,6 +2,7 @@
 using LagoVista.Core.Validation;
 using LagoVista.GitHelper;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
@@ -71,6 +72,11 @@ namespace GitHelper.Build
                 {
                     solution.SetDispatcher(_dispatcher);
                     solution.Reset();
+                    var result = _nugetHelpers.SetPackageNames(rootPath, solution);
+                    if (!result.Successful)
+                    {
+                        MessageBox.Show(result.Errors.First().Message);
+                    }
                 }
             }
 
@@ -120,7 +126,7 @@ namespace GitHelper.Build
             {
                 _writer.AddMessage(LogType.Message, "Starting build");
                 _writer.Flush(true);
-                var result = BuildAll("release", 1, 2);
+                var result = BuildAll("release", 2, 1);
                 if (result.Successful)
                 {
                     _writer.AddMessage(LogType.Success, "Build Succeeded");
@@ -143,7 +149,7 @@ namespace GitHelper.Build
             return !IsBusy;
         }
 
-        public InvokeResult BuildAll(string configuration, int minor, int major)
+        public InvokeResult BuildAll(string configuration, int major, int minor)
         {
             _isCancelled = false;
             if (SolutionFiles == null)
@@ -159,9 +165,25 @@ namespace GitHelper.Build
 
             NugetVersion = _nugetHelpers.GenerateNugetVersion(major, minor, DateTime.Now);
 
-            foreach (var solution in SolutionFiles)
+            var solutionsToBuild = SolutionFiles.Where(sol => sol.ShouldBuild && sol.Build);
+
+            var updatedPackages = new List<string>();
+            /* If we are doing a partial build, get a list of the packages names that will get built, if the list is empty when we
+             * update the csproj files we will update everything to the latest nuget, otherwise we will only do what we are building */
+            if (PartialBuild)
             {
-                result = _nugetHelpers.ApplyToCSProjects(_rootPath, solution, NugetVersion);
+                foreach (var solution in solutionsToBuild)
+                {
+                    foreach (var packageName in solution.Packages)
+                    {
+                        updatedPackages.Add(packageName);
+                    }
+                }
+            }
+
+            foreach (var solution in solutionsToBuild)
+            {
+                result = _nugetHelpers.ApplyToCSProjects(_rootPath, solution, NugetVersion, updatedPackages);
                 if (!result.Successful) return result.ToInvokeResult();
 
                 result = _nugetHelpers.ApplyToAllNuspecFiles(_rootPath, solution, NugetVersion);
@@ -176,81 +198,78 @@ namespace GitHelper.Build
             }
 
             var idx = 1;
-            var totalCount = SolutionFiles.Where(sol => sol.Build).Count();
-            foreach (var solution in SolutionFiles)
+            var totalCount = solutionsToBuild.Count();
+            foreach (var solution in solutionsToBuild)
             {
-                if (solution.Build)
+                solution.Status = BuildStatus.Restoring;
+                solution.StatusMessage = "Building";
+                var start = DateTime.Now;
+                _writer.AddMessage(LogType.Message, $"Build started: {solution.Name} ({idx++} of {totalCount})");
+                _writer.AddMessage(LogType.Message, $"===============================================");
+                result = _buildUtils.Restore(_rootPath, solution);
+                if (!result.Successful)
                 {
-                    solution.Status = BuildStatus.Restoring;
-                    solution.StatusMessage = "Building";
-                    var start = DateTime.Now;
-                    _writer.AddMessage(LogType.Message, $"Build started: {solution.Name} ({idx++} of {totalCount})");
-                    _writer.AddMessage(LogType.Message, $"===============================================");
-                    result = _buildUtils.Restore(_rootPath, solution);
-                    if (!result.Successful)
-                    {
-                        solution.Status = BuildStatus.Error;
-                        solution.StatusMessage = result.Errors.First().Message;
-                        return result.ToInvokeResult();
-                    }
-
-                    if (_isCancelled)
-                    {
-                        _writer.AddMessage(LogType.Warning, $"Build Cancelled");
-                        _writer.AddMessage(LogType.Success, $"");
-                        _writer.Flush();
-
-                        return InvokeResult.FromError("Build Cancelled");
-                    }
-
-                    solution.Status = BuildStatus.Building;
-                    result = _buildUtils.Build(_rootPath, solution, configuration);
-                    if (!result.Successful)
-                    {
-                        solution.StatusMessage = result.Errors.First().Message;
-                        solution.Status = BuildStatus.Error;
-                        return result.ToInvokeResult();
-                    }
-
-                    if (_isCancelled)
-                    {
-                        _writer.AddMessage(LogType.Warning, $"Build Cancelled");
-                        _writer.AddMessage(LogType.Success, $"");
-                        _writer.Flush();
-
-                        return InvokeResult.FromError("Build Cancelled");
-                    }
-
-                    solution.Status = BuildStatus.Packaging;
-                    result = _nugetUtils.CreatePackage(_rootPath, solution);
-                    if (!result.Successful)
-                    {
-                        solution.StatusMessage = result.Errors.First().Message;
-                        solution.Status = BuildStatus.Error;
-                        return result.ToInvokeResult();
-                    }
-
-                    if(_isCancelled)
-                    {
-                        _writer.AddMessage(LogType.Warning, $"Build Cancelled");
-                        _writer.AddMessage(LogType.Success, $"");
-                        _writer.Flush();
-
-                        return InvokeResult.FromError("Build Cancelled");
-                    }
-
-                    _writer.AddMessage(LogType.Success, $"Build Completed: {solution.Name} ({idx} of {totalCount})");
-                    var buildTime = DateTime.Now - start;
-                    var totalBuildTime = DateTime.Now - processStart;
-
-                    solution.StatusMessage = $"Built in {Math.Round(buildTime.TotalSeconds, 1)} seconds ";
-                    solution.Status = BuildStatus.Built;
-
-                    _writer.AddMessage(LogType.Success, $"Current Build: {Math.Round(buildTime.TotalSeconds,1)} seconds");
-                    _writer.AddMessage(LogType.Success, $"Total        : {Math.Round(totalBuildTime.TotalSeconds, 1)} seconds");
-                    _writer.AddMessage(LogType.Success, $"");
-                    _writer.Flush(true);
+                    solution.Status = BuildStatus.Error;
+                    solution.StatusMessage = result.Errors.First().Message;
+                    return result.ToInvokeResult();
                 }
+
+                if (_isCancelled)
+                {
+                    _writer.AddMessage(LogType.Warning, $"Build Cancelled");
+                    _writer.AddMessage(LogType.Success, $"");
+                    _writer.Flush();
+
+                    return InvokeResult.FromError("Build Cancelled");
+                }
+
+                solution.Status = BuildStatus.Building;
+                result = _buildUtils.Build(_rootPath, solution, configuration);
+                if (!result.Successful)
+                {
+                    solution.StatusMessage = result.Errors.First().Message;
+                    solution.Status = BuildStatus.Error;
+                    return result.ToInvokeResult();
+                }
+
+                if (_isCancelled)
+                {
+                    _writer.AddMessage(LogType.Warning, $"Build Cancelled");
+                    _writer.AddMessage(LogType.Success, $"");
+                    _writer.Flush();
+
+                    return InvokeResult.FromError("Build Cancelled");
+                }
+
+                solution.Status = BuildStatus.Packaging;
+                result = _nugetUtils.CreatePackage(_rootPath, solution);
+                if (!result.Successful)
+                {
+                    solution.StatusMessage = result.Errors.First().Message;
+                    solution.Status = BuildStatus.Error;
+                    return result.ToInvokeResult();
+                }
+
+                if (_isCancelled)
+                {
+                    _writer.AddMessage(LogType.Warning, $"Build Cancelled");
+                    _writer.AddMessage(LogType.Success, $"");
+                    _writer.Flush();
+
+                    return InvokeResult.FromError("Build Cancelled");
+                }
+
+                _writer.AddMessage(LogType.Success, $"Build Completed: {solution.Name} ({idx} of {totalCount})");
+                var buildTime = DateTime.Now - start;
+                var totalBuildTime = DateTime.Now - processStart;
+
+                solution.StatusMessage = $"Built in {Math.Round(buildTime.TotalSeconds, 1)} seconds ";
+                solution.Status = BuildStatus.Built;
+
+                _writer.AddMessage(LogType.Success, $"Current Build: {Math.Round(buildTime.TotalSeconds, 1)} seconds");
+                _writer.AddMessage(LogType.Success, $"Total        : {Math.Round(totalBuildTime.TotalSeconds, 1)} seconds");
+                _writer.AddMessage(LogType.Success, $"");
+                _writer.Flush(true);
             }
 
             _writer.AddMessage(LogType.Success, $"System Build Completed");
@@ -273,9 +292,17 @@ namespace GitHelper.Build
             {
                 _fullBuild = value;
                 NotifyChanged(nameof(FullBuild));
-                if(PartialBuild && _fullBuild)
+                if (PartialBuild && _fullBuild)
                 {
                     PartialBuild = false;
+                }
+
+                if (value)
+                {
+                    foreach (var solution in SolutionFiles)
+                    {
+                        solution.Build = true;
+                    }
                 }
             }
         }
@@ -288,9 +315,17 @@ namespace GitHelper.Build
             {
                 _partialBuild = value;
                 NotifyChanged(nameof(PartialBuild));
-                if(FullBuild && _partialBuild)
+                if (FullBuild && _partialBuild)
                 {
                     FullBuild = false;
+                }
+
+                if (value)
+                {
+                    foreach (var solution in SolutionFiles)
+                    {
+                        solution.Build = false;
+                    }
                 }
             }
         }

@@ -1,5 +1,6 @@
 ﻿using GitHelper.Build;
 using LagoVista.Core.Commanding;
+using LagoVista.GitHelper.Properties;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -21,20 +22,47 @@ namespace LagoVista.GitHelper
         ConsoleWriter _buildConsoleWriter;
         String _rootPath;
 
-        public MainViewModel(Dispatcher dispatcher, string rootPath)
+        public MainViewModel(Dispatcher dispatcher)
         {
-            _rootPath = rootPath;
+
+            var rp = Properties.Settings.Default["RootPath"];
+            RootPath = rp == null ? @"D:\NuvIoT" : rp.ToString();
+
+            if(!System.IO.Directory.Exists(RootPath))
+            {
+                MessageBox.Show($"Path [{RootPath}] does not exist, please set it to the root of your project structure, save settings and restart the application.");
+                IsReady = false;
+                SaveRootPathCommand = new RelayCommand(SaveRootPath);
+                return;
+            }
+
             _dispatcher = dispatcher;
             _consoleWriter = new ConsoleWriter(ConsoleLogOutput, dispatcher);
             _buildConsoleWriter = new ConsoleWriter(BuildConsoleLogOutput, dispatcher);
 
-            BuildTools = new Builder(rootPath, _buildConsoleWriter, dispatcher);
+            BuildTools = new Builder(_rootPath, _buildConsoleWriter, dispatcher);
 
             RefreshCommand = new RelayCommand(Refresh, CanRefresh);
+            
+
+            IsReady = true;
+
         }
+
+        public bool IsReady { get; private set; }
+
+
         public bool CanRefresh(Object obj)
         {
             return !IsBusy;
+        }
+
+
+        public void SaveRootPath()
+        {
+            Properties.Settings.Default["RootPath"] = RootPath;
+            Properties.Settings.Default.Save();
+            MessageBox.Show($"New Path [{RootPath}] is set, please restart the application to continue.");
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -65,7 +93,7 @@ namespace LagoVista.GitHelper
             {
                 Folders = new ObservableCollection<GitManagedFolder>();
 
-                foreach (var dir in dirs.Take(8))
+                foreach (var dir in dirs)
                 {
                     _dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, (Action)delegate
                     {
@@ -524,6 +552,7 @@ namespace LagoVista.GitHelper
             }
         }
 
+
         public ObservableCollection<ConsoleOutput> ConsoleLogOutput { get; } = new ObservableCollection<ConsoleOutput>();
 
         public ObservableCollection<ConsoleOutput> BuildConsoleLogOutput { get; } = new ObservableCollection<ConsoleOutput>();
@@ -578,6 +607,7 @@ namespace LagoVista.GitHelper
         #region Commands
 
         public RelayCommand RefreshCommand { get; private set; }
+        public RelayCommand SaveRootPathCommand { get; private set; }
 
         #endregion
     }

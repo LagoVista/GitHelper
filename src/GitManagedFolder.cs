@@ -45,13 +45,16 @@ namespace LagoVista.GitHelper
             _consoleWriter = writer;
             _dispatcher = dispatcher;
 
-            StashTempFilesCommand = new RelayCommand(StashTempFiles, CanStashTempFiles);
+            StashTempFilesCommand = new RelayCommand(StashTempFiles, CanStashFiles);
+            StashAllFilesCommand = new RelayCommand(StashAllFiles, CanStashFiles);
+
             RestoreTempFilesCommand = new RelayCommand(RestoreTempFiles, CanRestoreTempFiles);
             PushCommand = new RelayCommand(PushFiles, CanPushFiles);
             AddCommand = new RelayCommand(AddFile);
             PullCommand = new RelayCommand(PullFiles, CanPullFiles);
             CommitCommand = new RelayCommand(CommitFiles, CanCommitFiles);
             StageCommand = new RelayCommand(StageFiles, CanStageFiles);
+            
             RefreshCommand = new RelayCommand(Refresh, CanRefresh);
             UnstageFileCommand = new RelayCommand(UnStageFile, CanUnstageFile);
             UndoChangesCommand = new RelayCommand(UndoChanges, CanUndoChanges);
@@ -87,7 +90,7 @@ namespace LagoVista.GitHelper
             return !IsBusy;
         }
 
-        public bool CanStashTempFiles()
+        public bool CanStashFiles()
         {
             return NotStaged.Any() && !IsBusy;
         }
@@ -128,14 +131,15 @@ namespace LagoVista.GitHelper
         {
             UndoChangesCommand.RaiseCanExecuteChanged();
             UnstageFileCommand.RaiseCanExecuteChanged();
-            RefreshCommand.RaiseCanExecuteChanged();
-            StashTempFilesCommand.RaiseCanExecuteChanged();
+            RefreshCommand.RaiseCanExecuteChanged();            
             StageCommand.RaiseCanExecuteChanged();
             CommitCommand.RaiseCanExecuteChanged();
             PushCommand.RaiseCanExecuteChanged();
             PullCommand.RaiseCanExecuteChanged();
             RestoreTempFilesCommand.RaiseCanExecuteChanged();
             CleanUntrackedCommand.RaiseCanExecuteChanged();
+            StashAllFilesCommand.RaiseCanExecuteChanged();
+            StashTempFilesCommand.RaiseCanExecuteChanged();
         }
 
         #region Command Handlers
@@ -144,7 +148,30 @@ namespace LagoVista.GitHelper
             IsBusy = true;
             Task.Run(() =>
             {
-                RunProcess("git.exe", "stash", "stashing files", checkRemote: false);
+                var files = Untracked.Where(fil => fil.CurrentStatus == CurrentStatus.Untouched);
+                
+                var bldr = new StringBuilder("stash");
+                foreach (var file in files)
+                {
+                    bldr.Append($" {file.Label}");
+                }
+
+                files = NotStaged.Where(fil => fil.CurrentStatus == CurrentStatus.Untouched);
+                foreach (var file in files)
+                {
+                    bldr.Append($" {file.Label} ");
+                }
+
+                RunProcess("git.exe", bldr.ToString(), "stashing temporary files", checkRemote: false);
+            });
+        }
+
+        public void StashAllFiles()
+        {
+            IsBusy = true;
+            Task.Run(() =>
+            {
+                RunProcess("git.exe", "stash", "stashing all files", checkRemote: false);
             });
         }
 
@@ -565,6 +592,7 @@ namespace LagoVista.GitHelper
         public RelayCommand UndoChangesCommand { get; private set; }
         public RelayCommand MergeCommand { get; private set; }
         public RelayCommand DeleteFileCommand { get; private set; }
+        public RelayCommand StashAllFilesCommand { get; private set; }
         public RelayCommand AddCommand { get; private set; }
         public RelayCommand RefreshCommand { get; private set; }
 

@@ -10,7 +10,7 @@ namespace GitHelper.Build
 {
     public enum BuildStatus
     {
-        NotBuilding,
+        Skipping,
         Ready,
         Restoring,
         Building,
@@ -40,7 +40,7 @@ namespace GitHelper.Build
 
         public void Reset()
         {
-            Status = Build ? BuildStatus.Ready : BuildStatus.NotBuilding;
+            Status = ShouldBuild ? BuildStatus.Ready : BuildStatus.Skipping;
             StatusMessage = "Waiting";
         }
 
@@ -49,7 +49,20 @@ namespace GitHelper.Build
         public string Repo { get; set; }
         public string Solution { get; set; }
         public bool Private { get; set; }
-        public bool Build { get; set; }
+        public bool ShouldBuild { get; set; }
+
+        public List<String> Packages { get; set; } = new List<string>();
+
+        private bool _build = true;
+        public bool Build
+        {
+            get{ return _build; }
+            set
+            {
+                _build = value;
+                NotifyChanged(nameof(Build));
+            }
+        }
 
         public BuildStatus _status;
         public BuildStatus Status

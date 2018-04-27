@@ -68,7 +68,7 @@ namespace GitHelperTests
             fileHelper.Setup(fh => fh.OpenFile(It.IsAny<string>())).Returns(InvokeResult<string>.Create(FILECONTENTS));
 
             var nugetHelper = new NugetHelpers(new ConsoleWriter(), fileHelper.Object, new SolutionHelper(fileHelper.Object, new ConsoleWriter()));
-            nugetHelper.ApplyToCSProject("DONECARE", "1.1.1-alpha32");
+            nugetHelper.ApplyToCSProject("DONECARE", "1.1.1-alpha32", new List<string>());
         }
 
         [TestMethod]

@@ -32,12 +32,15 @@ namespace LagoVista.GitHelper
             }
             else
             {
-                _vm = new MainViewModel(Dispatcher, _rootPath);
+                _vm = new MainViewModel(Dispatcher);
                 Page.DataContext = _vm;
-                _vm.ScanNow();
+
+                if (_vm.IsReady)
+                {         
+                    _vm.ScanNow();
+                }
             }
         }
-
 
         TreeViewItem _previousTreeItem = null;
 

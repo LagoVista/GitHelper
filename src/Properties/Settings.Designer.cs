@@ -22,5 +22,17 @@ namespace LagoVista.GitHelper.Properties {
                 return defaultInstance;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("D:\\NuvIoT")]
+        public string RootPath {
+            get {
+                return ((string)(this["RootPath"]));
+            }
+            set {
+                this["RootPath"] = value;
+            }
+        }
     }
 }

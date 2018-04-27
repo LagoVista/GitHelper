@@ -35,11 +35,17 @@
                     <Grid Grid.Row="0">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="auto" />
+                            <RowDefinition Height="auto" />
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
-                        <Button Command="{Binding RefreshCommand}" Content="Refresh" Width="120" Height="30" HorizontalAlignment="Left" />
+                        
+                        <Button Command="{Binding RefreshCommand}" Content="Refresh" Width="120" Height="30" HorizontalAlignment="Left" Margin="5" />
+                        <StackPanel Grid.Row="1" Orientation="Horizontal">
+                            <TextBox Text="{Binding RootPath, Mode=TwoWay}" Width="270" />
+                            <Button Content="Save" Command="{Binding SaveRootPathCommand}" />
+                        </StackPanel>
 
-                        <TreeView IsEnabled="True" x:Name="FolderTree" Grid.Row="1" ItemsSource="{Binding Path=Folders}" SelectedItemChanged="FolderTree_SelectedItemChanged" >
+                        <TreeView IsEnabled="True" x:Name="FolderTree" Grid.Row="2" ItemsSource="{Binding Path=Folders}" SelectedItemChanged="FolderTree_SelectedItemChanged" >
                             <TreeView.Resources>
                                 <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="Silver" />
                                 <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="Black" />
@@ -109,8 +115,9 @@
                             </TreeView.ItemTemplate>
                         </TreeView>
                     </Grid>
+                    <Image Source="/Assets/sftlog-logo-large.png" Grid.Column="1" Stretch="Uniform"  HorizontalAlignment="Center"/>
                     <Grid Grid.Column="1" Grid.Row="0" >
-                        <Grid Visibility="{Binding Path=CurrentFolder, Converter={StaticResource NotNullVisibilityConverter}, FallbackValue=Collapsed}">
+                        <Grid Visibility="{Binding Path=CurrentFolder, Converter={StaticResource NotNullVisibilityConverter}, FallbackValue=Collapsed}" Background="White" >
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="auto" />
                                 <RowDefinition Height="auto" />
@@ -134,7 +141,39 @@
                                 <RowDefinition Height="auto" />
                                 <RowDefinition Height="auto" />
                             </Grid.RowDefinitions>
-                            <Button Content="Refresh" HorizontalAlignment="Left" Command="{Binding Path=CurrentFolder.RefreshCommand}" Width="120" Height="30" />
+                            <StackPanel >
+                                <StackPanel.Resources>
+                                    <Style TargetType="Button" >
+                                        <Setter Property="Margin" Value="2" />
+                                    </Style>
+                                </StackPanel.Resources>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="Refresh Status" Command="{Binding CurrentFolder.RefreshCommand}" Width="120" />
+                                    <Button Content="Stash All" Command="{Binding CurrentFolder.StashAllFilesCommand}" Width="120" />
+                                    <Button Content="Stash Temporary" Command="{Binding CurrentFolder.StashTempFilesCommand}" Width="120" />
+                                    <Button Content="Stage Files" Command="{Binding CurrentFolder.StageCommand}" Width="120" />
+                                    <Button Content="Commit Files" Command="{Binding CurrentFolder.CommitCommand}" Width="120" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Command="{Binding CurrentFolder.PullCommand}"  Width="120" >
+                                        <TextBlock >
+                                                <Run Text="Push (" />
+                                                <Run Text="{Binding Path=CurrentFolder.UnpushedCommitCount}" />
+                                                <Run Text=")" />
+                                        </TextBlock>
+                                    </Button>
+                                    <Button Command="{Binding CurrentFolder.PushCommand}" Width="120">
+                                        <TextBlock >
+                                                <Run Text="Pull (" />
+                                                <Run Text="{Binding Path=CurrentFolder.BehindOriginCount}" />
+                                                <Run Text=")" />
+                                        </TextBlock>
+                                    </Button>
+                                    <Button Content="Restore Stashed Files" Command="{Binding CurrentFolder.RestoreTempFilesCommand}" Width="120" />
+                                    <Button Content="!! Clean Untracked !!" Command="{Binding CurrentFolder.CleanUntrackedCommand}" Background="Red" Foreground="White" Width="120" />
+                                    <Button Content="!! Reset Hard !!" Command="{Binding CurrentFolder.ResetHardCommand}" Background="Red" Foreground="White" Width="120" />
+                                </StackPanel>
+                            </StackPanel>
                             <Label Grid.Row="1" FontSize="24" Content="{Binding CurrentFolder.Label}"></Label>
 
                             <Label Content="Stashed files" Grid.Row="2"></Label>
@@ -218,33 +257,6 @@
 
                             <Label Content="Commit Message" Grid.Row="12" Height="30" />
                             <TextBox Text="{Binding CurrentFolder.CommitMessage, Mode=TwoWay}" Grid.Row="13" Height="120" TextWrapping="Wrap" />
-
-                            <StackPanel Grid.Row="14" >
-                                <StackPanel Orientation="Horizontal">
-                                    <Button Content="Stash Temp Files" Command="{Binding CurrentFolder.StashTempFilesCommand}" Width="120" />
-                                    <Button Content="Stage Files" Command="{Binding CurrentFolder.StageCommand}" Width="120" />
-                                    <Button Content="Commit Files" Command="{Binding CurrentFolder.CommitCommand}" Width="120" />
-                                    <Button Content="!! Clean Untracked !!" Command="{Binding CurrentFolder.CleanUntrackedCommand}" Background="Red" Foreground="White" Width="120" />
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal">
-                                    <Button Command="{Binding CurrentFolder.PullCommand}"  Width="120" >
-                                        <TextBlock >
-                                                <Run Text="Push (" />
-                                                <Run Text="{Binding Path=CurrentFolder.UnpushedCommitCount}" />
-                                                <Run Text=")" />
-                                        </TextBlock>
-                                    </Button>
-                                    <Button Command="{Binding CurrentFolder.PushCommand}" Width="120">
-                                        <TextBlock >
-                                                <Run Text="Pull (" />
-                                                <Run Text="{Binding Path=CurrentFolder.BehindOriginCount}" />
-                                                <Run Text=")" />
-                                        </TextBlock>
-                                    </Button>
-                                    <Button Content="Restore Stashed Files" Command="{Binding CurrentFolder.RestoreTempFilesCommand}" Width="120" />
-                                    <Button Content="!! Reset Hard !!" Command="{Binding CurrentFolder.ResetHardCommand}" Background="Red" Foreground="White" Width="120" />
-                                </StackPanel>
-                            </StackPanel>
                         </Grid>
                     </Grid>
                     <Grid Grid.Column="2">
@@ -265,7 +277,7 @@
                             <RowDefinition Height="auto" />
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
-                        <Button Content="Done" Click="Button_Click" />
+                        <Button Content="Done" Click="Button_Click" Width="120" Height="30" HorizontalAlignment="Left" Margin="5"/>
                         <TextBlock Text="{Binding CurrentFile.Directory}" Grid.Row="1" FontSize="14" FontFamily="Consolas"  Margin="20,0,0,10" />
                         <TextBlock Text="{Binding CurrentFile.Label}" Grid.Row="2" FontSize="14" FontFamily="Consolas"  Margin="20,0,0,10" />
                         <TextBlock Text="{Binding CurrentFile.State}" Grid.Row="3" FontSize="14" FontFamily="Consolas"  Margin="20,0,0,10" />
@@ -314,12 +326,19 @@
                                                 <RowDefinition Height="auto" />
                                             </Grid.RowDefinitions>
                                             <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="auto" />
                                                 <ColumnDefinition Width="50*" />
                                                 <ColumnDefinition Width="50*" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="{Binding Name}" FontSize="16" Foreground="{Binding Status, Converter={StaticResource ColorConverter}, ConverterParameter=foreground}" Margin="5"/>
-                                            <TextBlock Text="{Binding Status}" FontSize="16" Grid.Column="1" Foreground="{Binding Status, Converter={StaticResource ColorConverter}, ConverterParameter=foreground}" HorizontalAlignment="Right" Margin="5"/>
-                                            <TextBlock Text="{Binding StatusMessage}" Grid.Row="1" Foreground="{Binding Status,Converter={StaticResource ColorConverter}, ConverterParameter=foreground}" Margin="5"/>
+                                            
+                                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="5,0,5,0" Grid.RowSpan="2">
+                                                <TextBlock Text="Build" />
+                                                <CheckBox Grid.RowSpan="2" IsChecked="{Binding Build, Mode=TwoWay}" HorizontalAlignment="Center" />
+                                            </StackPanel>
+                                            
+                                            <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="{Binding Status, Converter={StaticResource ColorConverter}, ConverterParameter=foreground}" Margin="5,5,0,0" Grid.Column="1"/>
+                                            <TextBlock Text="{Binding Status}" Grid.Column="2" Foreground="{Binding Status, Converter={StaticResource ColorConverter}, ConverterParameter=foreground}" HorizontalAlignment="Right" Margin="5,5,5,0" />
+                                            <TextBlock Text="{Binding StatusMessage}" Grid.Row="1" Foreground="{Binding Status,Converter={StaticResource ColorConverter}, ConverterParameter=foreground}" Margin="5,0,5,5" Grid.Column="1"/>
                                         </Grid>
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
