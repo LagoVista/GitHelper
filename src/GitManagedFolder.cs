@@ -399,7 +399,7 @@ namespace LagoVista.GitHelper
                 IsBusy = true;
                 Task.Run(() =>
                 {
-                    RunProcess("git.exe", "clean -fx", "clean changes.", true, checkRemote: false);
+                    RunProcess("git.exe", "reset --hard", "reset hard.", true, checkRemote: false);
                     Scan(false, checkRemote: false);
                 });
             }

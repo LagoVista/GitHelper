@@ -156,22 +156,22 @@
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal">
                                     <Button Command="{Binding CurrentFolder.PullCommand}"  Width="120" >
-                                        <TextBlock >
-                                                <Run Text="Push (" />
-                                                <Run Text="{Binding Path=CurrentFolder.UnpushedCommitCount}" />
-                                                <Run Text=")" />
-                                        </TextBlock>
-                                    </Button>
-                                    <Button Command="{Binding CurrentFolder.PushCommand}" Width="120">
-                                        <TextBlock >
+                                        <TextBlock>
                                                 <Run Text="Pull (" />
                                                 <Run Text="{Binding Path=CurrentFolder.BehindOriginCount}" />
                                                 <Run Text=")" />
                                         </TextBlock>
                                     </Button>
+                                    <Button Command="{Binding CurrentFolder.PushCommand}" Width="120">
+                                        <TextBlock>
+                                                <Run Text="Push (" />
+                                                <Run Text="{Binding Path=CurrentFolder.UnpushedCommitCount}" />
+                                                <Run Text=")" />
+                                        </TextBlock>
+                                    </Button>
                                     <Button Content="Restore Stashed Files" Command="{Binding CurrentFolder.RestoreTempFilesCommand}" Width="120" />
                                     <Button Content="!! Clean Untracked !!" Command="{Binding CurrentFolder.CleanUntrackedCommand}" Background="Red" Foreground="White" Width="120" />
-                                    <Button Content="!! Reset Hard !!" Command="{Binding CurrentFolder.ResetHardCommand}" Background="Red" Foreground="White" Width="120" />
+                                    <Button Content="!! Reset Hard !!" Command="{Binding CurrentFolder.HardResetCommand}" Background="Red" Foreground="White" Width="120" />
                                 </StackPanel>
                             </StackPanel>
                             <Label Grid.Row="1" FontSize="24" Content="{Binding CurrentFolder.Label}"></Label>

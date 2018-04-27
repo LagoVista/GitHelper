@@ -26,12 +26,12 @@ namespace LagoVista.GitHelper
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            if (!System.IO.Directory.Exists(_rootPath))
-            {
-                MessageBox.Show($"Root Directory does not exist or has not been configured: {_rootPath}");
-            }
-            else
-            {
+            //if (!System.IO.Directory.Exists(_rootPath))
+            //{
+            //    MessageBox.Show($"Root Directory does not exist or has not been configured: {_rootPath}");
+            //}
+            //else
+            //{
                 _vm = new MainViewModel(Dispatcher);
                 Page.DataContext = _vm;
 
@@ -39,7 +39,7 @@ namespace LagoVista.GitHelper
                 {         
                     _vm.ScanNow();
                 }
-            }
+            //}
         }
 
         TreeViewItem _previousTreeItem = null;
