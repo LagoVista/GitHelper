@@ -1,4 +1,5 @@
-﻿using System;
+﻿using LagoVista.Core.Commanding;
+using System;
 using System.ComponentModel;
 using System.Text.RegularExpressions;
 using System.Windows.Threading;
@@ -7,6 +8,7 @@ namespace LagoVista.GitHelper
 {
     public enum GitFileState
     {
+        Stashed,
         Untracked,
         NotStaged,
         Staged,
@@ -22,6 +24,7 @@ namespace LagoVista.GitHelper
 
     public enum CurrentStatus
     {
+        Conflicts,
         Dirty,
         Untouched
     }
@@ -30,9 +33,18 @@ namespace LagoVista.GitHelper
     {
         Dispatcher _dispatcher;
 
-        public GitFileStatus(Dispatcher dispatcher)
+        GitManagedFolder _folder;
+
+        public GitFileStatus(Dispatcher dispatcher, GitManagedFolder folder)
         {
             _dispatcher = dispatcher;
+            _folder = folder;
+
+            UnstageFileCommand = new RelayCommand((obj) => _folder.UnstageFileCommand.Execute(this));
+            UndoChangesCommand = new RelayCommand((obj) => _folder.UndoChangesCommand.Execute(this));
+            MergeCommand = new RelayCommand((obj) => _folder.MergeCommand.Execute(this));
+            AddCommand = new RelayCommand((obj) => _folder.AddCommand.Execute(this));
+            DeleteCommand = new RelayCommand((obj) => _folder.DeleteFileCommand.Execute(this));
         }
 
         private void NotifyChanged(string propertyName)
@@ -115,6 +127,11 @@ namespace LagoVista.GitHelper
                 return;
             }
 
+            if(State == GitFileState.Conflicted)
+            {
+                CurrentStatus = CurrentStatus.Conflicts;
+            }
+
             if (State == GitFileState.Staged)
             {
                 IsDirty = true;
@@ -137,7 +154,15 @@ namespace LagoVista.GitHelper
                         }
                     }
                 }
-            }
+            }            
         }
+
+        public GitManagedFolder Folder { get { return _folder; } }
+
+        public RelayCommand UndoChangesCommand { get; private set; }
+        public RelayCommand UnstageFileCommand { get; private set; }
+        public RelayCommand MergeCommand { get; private set; }
+        public RelayCommand AddCommand { get; private set; }
+        public RelayCommand DeleteCommand { get; private set; }
     }
 }

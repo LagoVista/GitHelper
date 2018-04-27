@@ -1,6 +1,5 @@
 ﻿using GitHelper.Build;
 using LagoVista.Core.Commanding;
-using LagoVista.GitHelper;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -11,7 +10,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Input;
 using System.Windows.Threading;
 
 namespace LagoVista.GitHelper
@@ -19,29 +17,21 @@ namespace LagoVista.GitHelper
     public class MainViewModel : INotifyPropertyChanged
     {
         Dispatcher _dispatcher;
-        private ObservableCollection<ConsoleOutput> _consoleOutput = new ObservableCollection<ConsoleOutput>();
         ConsoleWriter _consoleWriter;
-
-        Builder _builder;
+        ConsoleWriter _buildConsoleWriter;
         String _rootPath;
 
         public MainViewModel(Dispatcher dispatcher, string rootPath)
         {
             _rootPath = rootPath;
             _dispatcher = dispatcher;
-            _consoleWriter = new ConsoleWriter(_consoleOutput, dispatcher);
+            _consoleWriter = new ConsoleWriter(ConsoleLogOutput, dispatcher);
+            _buildConsoleWriter = new ConsoleWriter(BuildConsoleLogOutput, dispatcher);
 
-            _builder = new Builder(rootPath, _consoleWriter);
+            BuildTools = new Builder(rootPath, _buildConsoleWriter, dispatcher);
 
-            BuildNowCommand = new RelayCommand(BuildNow, CanBuild);
             RefreshCommand = new RelayCommand(Refresh, CanRefresh);
         }
-
-        public bool CanBuild(Object obj )
-        {
-            return !IsBusy;
-        }
-
         public bool CanRefresh(Object obj)
         {
             return !IsBusy;
@@ -128,36 +118,9 @@ namespace LagoVista.GitHelper
                     {
                         NotifyChanged(nameof(IsBusy));
                         RefreshCommand.RaiseCanExecuteChanged();
-                        BuildNowCommand.RaiseCanExecuteChanged();
                     });
                 }
             }
-        }
-
-
-        public void BuildNow(Object obj)
-        {
-            Task.Run(() =>
-            {
-                _consoleWriter.AddMessage(LogType.Message, "Starting build");
-                _consoleWriter.Flush(true);
-                var result = _builder.BuildAll("release", 1, 2);
-                if (result.Successful)
-                {
-                    _consoleWriter.AddMessage(LogType.Success, "Build Succeeded");
-                }
-                else
-                {
-                    _consoleWriter.AddMessage(LogType.Error, "Build Failed!");
-                }
-                _consoleWriter.Flush(false);
-
-                _dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, (Action)delegate
-                {
-                    Status = "Ready";
-                    ScanVisibility = Visibility.Collapsed;
-                });
-            });
         }
 
         #region File Watcher
@@ -240,7 +203,7 @@ namespace LagoVista.GitHelper
                 if (file == null) file = folder.Staged.Where(fil => fil.FullPath == fullFileName).FirstOrDefault();
                 if (file == null)
                 {
-                    file = new GitFileStatus(this._dispatcher)
+                    file = new GitFileStatus(this._dispatcher, folder)
                     {
                         Directory = directoryName,
                         FullPath = fullFileName,
@@ -286,14 +249,15 @@ namespace LagoVista.GitHelper
                         switch (file.State)
                         {
                             case GitFileState.Untracked:
-                                folder.Untracked.Add(file);
+                                if(!folder.Untracked.Where(fil=>fil.Label == file.Label).Any()) folder.Untracked.Add(file);
+
                                 break;
                             case GitFileState.Staged:
                                 break;
                             case GitFileState.Conflicted:
                                 break;
                             case GitFileState.NotStaged:
-                                folder.NotStaged.Add(file);
+                                if (!folder.NotStaged.Where(fil => fil.Label == file.Label).Any()) folder.Untracked.Add(file);
                                 break;
                         }
                     }
@@ -491,6 +455,8 @@ namespace LagoVista.GitHelper
         }
 
         #region Properties
+        public Builder BuildTools { get; }
+
 
         ObservableCollection<GitManagedFolder> _folders;
         public ObservableCollection<GitManagedFolder> Folders
@@ -558,7 +524,9 @@ namespace LagoVista.GitHelper
             }
         }
 
-        public ObservableCollection<ConsoleOutput> ConsoleLogOutput { get { return _consoleOutput; } }
+        public ObservableCollection<ConsoleOutput> ConsoleLogOutput { get; } = new ObservableCollection<ConsoleOutput>();
+
+        public ObservableCollection<ConsoleOutput> BuildConsoleLogOutput { get; } = new ObservableCollection<ConsoleOutput>();
 
         GitFileStatus _currentFile = null;
         public GitFileStatus CurrentFile
@@ -608,7 +576,6 @@ namespace LagoVista.GitHelper
         #endregion
 
         #region Commands
-        public RelayCommand BuildNowCommand { get; private set; }
 
         public RelayCommand RefreshCommand { get; private set; }
 

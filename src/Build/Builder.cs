@@ -1,14 +1,18 @@
-﻿using LagoVista.Core.Validation;
+﻿using LagoVista.Core.Commanding;
+using LagoVista.Core.Validation;
 using LagoVista.GitHelper;
 using System;
-using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Threading;
 
 namespace GitHelper.Build
 {
-    public class Builder
+    public class Builder : INotifyPropertyChanged
     {
         private string _rootPath;
         private IConsoleWriter _writer;
@@ -21,80 +25,290 @@ namespace GitHelper.Build
         private NugetUtils _nugetUtils;
 
 
-        public Builder(string rootPath, IConsoleWriter writer)
+        Dispatcher _dispatcher;
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        private bool _isCancelled;
+
+        private void NotifyChanged(string propertyName)
         {
+            _dispatcher.BeginInvoke(DispatcherPriority.Normal, (Action)delegate
+            {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            });
+        }
+
+        public Builder(string rootPath, IConsoleWriter writer, Dispatcher dispatcher)
+        {
+            _dispatcher = dispatcher;
             _rootPath = rootPath;
 
             _writer = writer;
             _fileHelper = new FileHelpers(_writer);
             _solutionHelper = new SolutionHelper(_fileHelper, _writer);
-            
+
             _nugetHelpers = new NugetHelpers(_writer, _fileHelper, _solutionHelper);
 
             _buildUtils = new BuildUtils(_writer);
-            _nugetUtils = new NugetUtils(_writer, _fileHelper, _nugetHelpers);            
+            _nugetUtils = new NugetUtils(_writer, _fileHelper, _nugetHelpers);
+
+            if (!System.IO.Directory.Exists(rootPath))
+            {
+                MessageBox.Show($"Root Directory does not exist: {_rootPath}");
+                return;
+            }
+
+            var solutionsResult = _solutionHelper.LoadSolutions(_rootPath);
+            if (!solutionsResult.Successful)
+            {
+                MessageBox.Show($"Could not find Solutions.json file in {_rootPath}");
+            }
+            else
+            {
+                SolutionFiles = solutionsResult.Result;
+                foreach (var solution in SolutionFiles)
+                {
+                    solution.SetDispatcher(_dispatcher);
+                    solution.Reset();
+                }
+            }
+
+            BuildNowCommand = new RelayCommand(BuildNow, CanBuildNow);
+            CancelBuildCommand = new RelayCommand(CancelBuild, CanCancelBuild);
+        }
+
+
+        ObservableCollection<SolutionInformation> _solutionFiles;
+
+        public ObservableCollection<SolutionInformation> SolutionFiles
+        {
+            get { return _solutionFiles; }
+            set
+            {
+                _solutionFiles = value;
+                NotifyChanged(nameof(SolutionFiles));
+            }
+        }
+
+        private string _nugetVersion;
+        public string NugetVersion
+        {
+            get { return _nugetVersion; }
+            set
+            {
+                _nugetVersion = value;
+                NotifyChanged(nameof(NugetVersion));
+            }
+        }
+
+        public void CancelBuild()
+        {
+            _isCancelled = true;
+        }
+
+        public bool CanCancelBuild()
+        {
+            return IsBusy;
+        }
+
+        public void BuildNow()
+        {
+            IsBusy = true;
+
+            Task.Run(() =>
+            {
+                _writer.AddMessage(LogType.Message, "Starting build");
+                _writer.Flush(true);
+                var result = BuildAll("release", 1, 2);
+                if (result.Successful)
+                {
+                    _writer.AddMessage(LogType.Success, "Build Succeeded");
+                }
+                else
+                {
+                    _writer.AddMessage(LogType.Error, "Build Failed!");
+                }
+                _writer.Flush(false);
+
+                _dispatcher.BeginInvoke(DispatcherPriority.Normal, (Action)delegate
+                {
+                    IsBusy = false;
+                });
+            });
+        }
+
+        public bool CanBuildNow()
+        {
+            return !IsBusy;
         }
 
         public InvokeResult BuildAll(string configuration, int minor, int major)
         {
+            _isCancelled = false;
+            if (SolutionFiles == null)
+            {
+                return InvokeResult.FromError("Build not configured, likely could not find Solutions.json in root directory.");
+            }
+
             var processStart = DateTime.Now;
 
-            var result  = _nugetUtils.RemoveAllOldPackages(_rootPath);
+            var result = _nugetUtils.RemoveAllOldPackages(_rootPath);
             if (!result.Successful) return result.ToInvokeResult();
 
-            var solutionsResult = _solutionHelper.LoadSolutions(_rootPath);
-            if (!solutionsResult.Successful) return solutionsResult.ToInvokeResult();
-            var solutions = solutionsResult.Result;
 
-            var nugetVersion = _nugetHelpers.GenerateNugetVersion(major, minor, DateTime.Now);
+            NugetVersion = _nugetHelpers.GenerateNugetVersion(major, minor, DateTime.Now);
 
-            foreach (var solution in solutions)
+            foreach (var solution in SolutionFiles)
             {
-                result = _nugetHelpers.ApplyToCSProjects(_rootPath, solution, nugetVersion);
+                result = _nugetHelpers.ApplyToCSProjects(_rootPath, solution, NugetVersion);
                 if (!result.Successful) return result.ToInvokeResult();
 
-                result = _nugetHelpers.ApplyToAllNuspecFiles(_rootPath, solution, nugetVersion);
+                result = _nugetHelpers.ApplyToAllNuspecFiles(_rootPath, solution, NugetVersion);
                 if (!result.Successful) return result.ToInvokeResult();
             }
 
             _writer.Flush(true);
 
+            foreach (var solution in SolutionFiles)
+            {
+                solution.Reset();
+            }
+
             var idx = 1;
-            var totalCount = solutions.Where(sol => sol.Build).Count();
-            foreach(var solution in solutions)
+            var totalCount = SolutionFiles.Where(sol => sol.Build).Count();
+            foreach (var solution in SolutionFiles)
             {
                 if (solution.Build)
                 {
+                    solution.Status = BuildStatus.Restoring;
+                    solution.StatusMessage = "Building";
                     var start = DateTime.Now;
                     _writer.AddMessage(LogType.Message, $"Build started: {solution.Name} ({idx++} of {totalCount})");
                     _writer.AddMessage(LogType.Message, $"===============================================");
                     result = _buildUtils.Restore(_rootPath, solution);
-                    if (!result.Successful) return result.ToInvokeResult();
+                    if (!result.Successful)
+                    {
+                        solution.Status = BuildStatus.Error;
+                        solution.StatusMessage = result.Errors.First().Message;
+                        return result.ToInvokeResult();
+                    }
 
+                    if (_isCancelled)
+                    {
+                        _writer.AddMessage(LogType.Warning, $"Build Cancelled");
+                        _writer.AddMessage(LogType.Success, $"");
+                        _writer.Flush();
+
+                        return InvokeResult.FromError("Build Cancelled");
+                    }
+
+                    solution.Status = BuildStatus.Building;
                     result = _buildUtils.Build(_rootPath, solution, configuration);
-                    if (!result.Successful) return result.ToInvokeResult();
+                    if (!result.Successful)
+                    {
+                        solution.StatusMessage = result.Errors.First().Message;
+                        solution.Status = BuildStatus.Error;
+                        return result.ToInvokeResult();
+                    }
 
+                    if (_isCancelled)
+                    {
+                        _writer.AddMessage(LogType.Warning, $"Build Cancelled");
+                        _writer.AddMessage(LogType.Success, $"");
+                        _writer.Flush();
+
+                        return InvokeResult.FromError("Build Cancelled");
+                    }
+
+                    solution.Status = BuildStatus.Packaging;
                     result = _nugetUtils.CreatePackage(_rootPath, solution);
-                    if (!result.Successful) return result.ToInvokeResult();
+                    if (!result.Successful)
+                    {
+                        solution.StatusMessage = result.Errors.First().Message;
+                        solution.Status = BuildStatus.Error;
+                        return result.ToInvokeResult();
+                    }
+
+                    if(_isCancelled)
+                    {
+                        _writer.AddMessage(LogType.Warning, $"Build Cancelled");
+                        _writer.AddMessage(LogType.Success, $"");
+                        _writer.Flush();
+
+                        return InvokeResult.FromError("Build Cancelled");
+                    }
 
                     _writer.AddMessage(LogType.Success, $"Build Completed: {solution.Name} ({idx} of {totalCount})");
                     var buildTime = DateTime.Now - start;
                     var totalBuildTime = DateTime.Now - processStart;
 
-                    _writer.AddMessage(LogType.Success, $"Current Build: {buildTime.Minutes}:{buildTime.Seconds:00}");
-                    _writer.AddMessage(LogType.Success, $"Total        : {totalBuildTime.Minutes}:{totalBuildTime.Seconds:00}");
+                    solution.StatusMessage = $"Built in {Math.Round(buildTime.TotalSeconds, 1)} seconds ";
+                    solution.Status = BuildStatus.Built;
+
+                    _writer.AddMessage(LogType.Success, $"Current Build: {Math.Round(buildTime.TotalSeconds,1)} seconds");
+                    _writer.AddMessage(LogType.Success, $"Total        : {Math.Round(totalBuildTime.TotalSeconds, 1)} seconds");
                     _writer.AddMessage(LogType.Success, $"");
                     _writer.Flush(true);
                 }
             }
 
             _writer.AddMessage(LogType.Success, $"System Build Completed");
-            _writer.AddMessage(LogType.Success, $"{DateTime.Now - processStart}");
+            _writer.AddMessage(LogType.Success, $"{Math.Round((DateTime.Now - processStart).TotalSeconds, 1)} seconds");
             _writer.AddMessage(LogType.Success, $"");
             _writer.Flush();
 
             return InvokeResult.Success;
-
         }
+
+        public RelayCommand BuildNowCommand { get; private set; }
+        public RelayCommand CancelBuildCommand { get; private set; }
+
+
+        private bool _fullBuild = true;
+        public bool FullBuild
+        {
+            get { return _fullBuild; }
+            set
+            {
+                _fullBuild = value;
+                NotifyChanged(nameof(FullBuild));
+                if(PartialBuild && _fullBuild)
+                {
+                    PartialBuild = false;
+                }
+            }
+        }
+
+        private bool _partialBuild = false;
+        public bool PartialBuild
+        {
+            get { return _partialBuild; }
+            set
+            {
+                _partialBuild = value;
+                NotifyChanged(nameof(PartialBuild));
+                if(FullBuild && _partialBuild)
+                {
+                    FullBuild = false;
+                }
+            }
+        }
+
+
+        private bool _isBusy;
+        public bool IsBusy
+        {
+            get { return _isBusy; }
+            set
+            {
+                _isBusy = value;
+                BuildNowCommand.RaiseCanExecuteChanged();
+                CancelBuildCommand.RaiseCanExecuteChanged();
+                NotifyChanged(nameof(IsBusy));
+            }
+        }
+
+
     }
 }

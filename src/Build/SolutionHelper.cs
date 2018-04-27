@@ -3,6 +3,7 @@ using LagoVista.GitHelper;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -21,28 +22,28 @@ namespace GitHelper.Build
             _consoleWriter = consoleWriter;
         }
 
-        public InvokeResult<List<SolutionInformation>> LoadSolutions(string rootPath)
+        public InvokeResult<ObservableCollection<SolutionInformation>> LoadSolutions(string rootPath)
         {
             var solutionsFile = Path.Combine(rootPath, "Solutions.json");
 
             if (!System.IO.File.Exists(solutionsFile))
             {
                 _consoleWriter.AddMessage(LogType.Error, "Could not find solutions file in root.");
-                return InvokeResult<List<SolutionInformation>>.FromError("Could not find  solutions file in root.");
+                return InvokeResult<ObservableCollection<SolutionInformation>>.FromError("Could not find  solutions file in root.");
             }
 
             try
             {
                 var result = _fileHelper.OpenFile(solutionsFile);
 
-                var items = JsonConvert.DeserializeObject<List<SolutionInformation>>(result.Result);
+                var items = JsonConvert.DeserializeObject<ObservableCollection<SolutionInformation>>(result.Result);
 
-                return InvokeResult<List<SolutionInformation>>.Create(items);
+                return InvokeResult<ObservableCollection<SolutionInformation>>.Create(items);
             }
             catch (Exception ex)
             {
                 _consoleWriter.AddMessage(LogType.Error, "Could not load solutions: " + ex.Message);
-                return InvokeResult<List<SolutionInformation>>.FromException("SolutionHelper_LoadSolutions", ex);
+                return InvokeResult<ObservableCollection<SolutionInformation>>.FromException("SolutionHelper_LoadSolutions", ex);
             }
         }
 

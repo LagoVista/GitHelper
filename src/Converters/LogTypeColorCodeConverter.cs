@@ -19,7 +19,7 @@ namespace LagoVista.GitHelper.Converters
                 {
                     case LogType.Error: return Brushes.Red;
                     case LogType.Warning: return Brushes.Yellow;
-                    case LogType.Success: return Brushes.LightGreen;
+                    case LogType.Success: return Brushes.Lime;
                 }
             }
 

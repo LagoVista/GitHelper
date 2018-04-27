@@ -1,4 +1,5 @@
-﻿using System;
+﻿using GitHelper.Build;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -15,10 +16,39 @@ namespace LagoVista.GitHelper.Converters
         {
             if (value is CurrentStatus fileStatus)
             {
-                return fileStatus == CurrentStatus.Dirty ? Brushes.Green : Brushes.Gray;
+                switch (fileStatus)
+                {
+                    case CurrentStatus.Conflicts: return Brushes.Red;
+                    case CurrentStatus.Dirty: return Brushes.Green;
+                    case CurrentStatus.Untouched: return Brushes.Gray;
+                }
             }
 
-            return Brushes.Black;
+            if (value is BuildStatus buildStatus)
+            {
+                if (parameter != null && parameter.ToString() == "foreground")
+                {
+                    switch (buildStatus)
+                    {
+                        case BuildStatus.Built: return Brushes.White;
+                        case BuildStatus.Error: return Brushes.White;
+                    }
+
+                    return Brushes.Black;
+                }
+                else
+                {
+                    switch (buildStatus)
+                    {
+                        case BuildStatus.Built: return Brushes.Green;
+                        case BuildStatus.Error: return Brushes.Red;
+                    }
+
+                    return Brushes.Yellow;
+                }
+            }
+
+            return Brushes.Gray;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
