@@ -61,7 +61,7 @@ namespace LagoVista.GitHelper
             treeViewItem.IsSelected = true;
             _previousTreeItem = treeViewItem;
 
-            var fileStatus = (treeViewItem.DataContext as GitFileStatus);
+            var fileStatus = (treeViewItem.DataContext as GitManagedFile);
             _vm.CurrentFile = fileStatus;
             _vm.CurrentFolder = fileStatus.Folder;
         }

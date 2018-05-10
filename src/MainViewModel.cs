@@ -231,7 +231,7 @@ namespace LagoVista.GitHelper
                 if (file == null) file = folder.Staged.Where(fil => fil.FullPath == fullFileName).FirstOrDefault();
                 if (file == null)
                 {
-                    file = new GitFileStatus(this._dispatcher, folder)
+                    file = new GitManagedFile(this._dispatcher, folder)
                     {
                         Directory = directoryName,
                         FullPath = fullFileName,
@@ -317,7 +317,7 @@ namespace LagoVista.GitHelper
             }
         }
 
-        private bool IsTracked(GitFileStatus status, bool diagnostics = false)
+        private bool IsTracked(GitManagedFile status, bool diagnostics = false)
         {
             if (diagnostics)
             {
@@ -364,7 +364,7 @@ namespace LagoVista.GitHelper
             return true;
         }
 
-        private string DetectChanges(GitFileStatus status, bool diagnostics = false)
+        private string DetectChanges(GitManagedFile status, bool diagnostics = false)
         {
             if (diagnostics)
             {
@@ -557,8 +557,8 @@ namespace LagoVista.GitHelper
 
         public ObservableCollection<ConsoleOutput> BuildConsoleLogOutput { get; } = new ObservableCollection<ConsoleOutput>();
 
-        GitFileStatus _currentFile = null;
-        public GitFileStatus CurrentFile
+        GitManagedFile _currentFile = null;
+        public GitManagedFile CurrentFile
         {
             get { return _currentFile; }
             set

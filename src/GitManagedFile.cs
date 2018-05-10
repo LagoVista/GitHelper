@@ -29,13 +29,13 @@ namespace LagoVista.GitHelper
         Untouched
     }
 
-    public class GitFileStatus : INotifyPropertyChanged
+    public class GitManagedFile : INotifyPropertyChanged
     {
         Dispatcher _dispatcher;
 
         GitManagedFolder _folder;
 
-        public GitFileStatus(Dispatcher dispatcher, GitManagedFolder folder)
+        public GitManagedFile(Dispatcher dispatcher, GitManagedFolder folder)
         {
             _dispatcher = dispatcher;
             _folder = folder;
@@ -82,6 +82,27 @@ namespace LagoVista.GitHelper
 
         public string Label { get; set; }
 
+        public string ListLabel
+        {
+            get
+            {
+                if (String.IsNullOrEmpty(Label))
+                {
+                    return "-empty";
+                }
+                else if (Label.Length > 60)
+                {
+                    return $"{Label.Substring(0, 10)}...{Label.Substring(Label.Length - 30)}";
+                }
+                else
+                {
+                    return Label;
+                }
+
+
+            }
+        }
+
         public FileTypes FileType { get; set; }
 
 
@@ -127,7 +148,7 @@ namespace LagoVista.GitHelper
                 return;
             }
 
-            if(State == GitFileState.Conflicted)
+            if (State == GitFileState.Conflicted)
             {
                 CurrentStatus = CurrentStatus.Conflicts;
             }
@@ -154,7 +175,7 @@ namespace LagoVista.GitHelper
                         }
                     }
                 }
-            }            
+            }
         }
 
         public GitManagedFolder Folder { get { return _folder; } }

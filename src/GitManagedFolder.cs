@@ -177,7 +177,7 @@ namespace LagoVista.GitHelper
 
         public void AddFile(Object obj)
         {
-            if (obj is GitFileStatus file)
+            if (obj is GitManagedFile file)
             {
                 IsBusy = true;
                 Task.Run(() =>
@@ -189,7 +189,7 @@ namespace LagoVista.GitHelper
 
         public void UnStageFile(Object obj)
         {
-            if (obj is GitFileStatus file)
+            if (obj is GitManagedFile file)
             {
                 IsBusy = true;
                 Task.Run(() =>
@@ -201,7 +201,7 @@ namespace LagoVista.GitHelper
 
         public void UndoChanges(Object obj)
         {
-            if (obj is GitFileStatus file)
+            if (obj is GitManagedFile file)
             {
                 IsBusy = true;
                 Task.Run(() =>
@@ -213,7 +213,7 @@ namespace LagoVista.GitHelper
 
         public void DeleteFile(Object obj)
         {
-            if (obj is GitFileStatus file)
+            if (obj is GitManagedFile file)
             {
                 IsBusy = true;
                 Task.Run(() =>
@@ -237,7 +237,7 @@ namespace LagoVista.GitHelper
 
         public void Merge(Object obj)
         {
-            if (obj is GitFileStatus file)
+            if (obj is GitManagedFile file)
             {
                 if (MessageBox.Show("In tool resolving of merges is not currently supported.  Would you like to use notepad to manually resolve conflicts?", "Conflicts", MessageBoxButton.YesNoCancel) == MessageBoxResult.Yes)
             {
@@ -577,12 +577,12 @@ namespace LagoVista.GitHelper
         }
 
 
-        public ObservableCollection<GitFileStatus> Untracked { get; private set; } = new ObservableCollection<GitFileStatus>();
-        public ObservableCollection<GitFileStatus> NotStaged { get; private set; } = new ObservableCollection<GitFileStatus>();
-        public ObservableCollection<GitFileStatus> Staged { get; private set; } = new ObservableCollection<GitFileStatus>();
-        public ObservableCollection<GitFileStatus> Stashed { get; private set; } = new ObservableCollection<GitFileStatus>();
-        public ObservableCollection<GitFileStatus> Conflicted { get; private set; } = new ObservableCollection<GitFileStatus>();
-        public ObservableCollection<GitFileStatus> FilesToCommit { get { return new ObservableCollection<GitFileStatus>(NotStaged.Where(fil => fil.IsDirty)); } }
+        public ObservableCollection<GitManagedFile> Untracked { get; private set; } = new ObservableCollection<GitManagedFile>();
+        public ObservableCollection<GitManagedFile> NotStaged { get; private set; } = new ObservableCollection<GitManagedFile>();
+        public ObservableCollection<GitManagedFile> Staged { get; private set; } = new ObservableCollection<GitManagedFile>();
+        public ObservableCollection<GitManagedFile> Stashed { get; private set; } = new ObservableCollection<GitManagedFile>();
+        public ObservableCollection<GitManagedFile> Conflicted { get; private set; } = new ObservableCollection<GitManagedFile>();
+        public ObservableCollection<GitManagedFile> FilesToCommit { get { return new ObservableCollection<GitManagedFile>(NotStaged.Where(fil => fil.IsDirty)); } }
 
         public RelayCommand CommitCommand { get; private set; }
         public RelayCommand PushCommand { get; private set; }
@@ -603,7 +603,7 @@ namespace LagoVista.GitHelper
         public RelayCommand CleanUntrackedCommand { get; private set; }
         public RelayCommand HardResetCommand { get; private set; }
 
-        public ObservableCollection<GitFileStatus> StashedFiles { get; private set; } = new ObservableCollection<GitFileStatus>();
+        public ObservableCollection<GitManagedFile> StashedFiles { get; private set; } = new ObservableCollection<GitManagedFile>();
 
         private bool _isBusy = false;
         public bool IsBusy
@@ -623,7 +623,7 @@ namespace LagoVista.GitHelper
         #endregion
 
         #region Utility Methods
-        public void ResetFileChanges(GitFileStatus file)
+        public void ResetFileChanges(GitManagedFile file)
         {
             var proc = new Process
             {
@@ -780,11 +780,11 @@ namespace LagoVista.GitHelper
                 return false;
             }
 
-            var untrackedFilesToAdd = new List<GitFileStatus>();
-            var notStagedFilesToAdd = new List<GitFileStatus>();
-            var stagedFilesToAdd = new List<GitFileStatus>();
-            var stashedFilesToAdd = new List<GitFileStatus>();
-            var conflictedFilesToAdd = new List<GitFileStatus>();
+            var untrackedFilesToAdd = new List<GitManagedFile>();
+            var notStagedFilesToAdd = new List<GitManagedFile>();
+            var stagedFilesToAdd = new List<GitManagedFile>();
+            var stashedFilesToAdd = new List<GitManagedFile>();
+            var conflictedFilesToAdd = new List<GitManagedFile>();
 
             while (!proc.StandardOutput.EndOfStream)
             {
@@ -892,7 +892,7 @@ namespace LagoVista.GitHelper
                     line = line.Replace("both modified:", "").Trim().Replace('/', '\\');
                     line = line.Replace("modified:", "").Trim().Replace('/', '\\');
                     line = line.Replace("new file:", "").Trim().Replace('/', '\\');
-                    var fileStatus = new GitFileStatus(_dispatcher, this)
+                    var fileStatus = new GitManagedFile(_dispatcher, this)
                     {
                         Directory = Path,
                         Label = line.Trim(),
@@ -971,7 +971,7 @@ namespace LagoVista.GitHelper
                     line != "No stash entries found." &&
                     !String.IsNullOrEmpty(line))
                 {
-                    stashedFilesToAdd.Add(new GitFileStatus(_dispatcher, this)
+                    stashedFilesToAdd.Add(new GitManagedFile(_dispatcher, this)
                     {
                         Label = line,
                         State = GitFileState.Stashed,
@@ -1024,7 +1024,7 @@ namespace LagoVista.GitHelper
             return true;
         }
 
-        private string DetectChanges(GitFileStatus status, bool diagnostics = false)
+        private string DetectChanges(GitManagedFile status, bool diagnostics = false)
         {
             if (diagnostics)
             {
