@@ -54,7 +54,7 @@ namespace LagoVista.GitHelper
             PullCommand = new RelayCommand(PullFiles, CanPullFiles);
             CommitCommand = new RelayCommand(CommitFiles, CanCommitFiles);
             StageCommand = new RelayCommand(StageFiles, CanStageFiles);
-            
+
             RefreshCommand = new RelayCommand(Refresh, CanRefresh);
             UnstageFileCommand = new RelayCommand(UnStageFile, CanUnstageFile);
             UndoChangesCommand = new RelayCommand(UndoChanges, CanUndoChanges);
@@ -131,7 +131,7 @@ namespace LagoVista.GitHelper
         {
             UndoChangesCommand.RaiseCanExecuteChanged();
             UnstageFileCommand.RaiseCanExecuteChanged();
-            RefreshCommand.RaiseCanExecuteChanged();            
+            RefreshCommand.RaiseCanExecuteChanged();
             StageCommand.RaiseCanExecuteChanged();
             CommitCommand.RaiseCanExecuteChanged();
             PushCommand.RaiseCanExecuteChanged();
@@ -140,6 +140,7 @@ namespace LagoVista.GitHelper
             CleanUntrackedCommand.RaiseCanExecuteChanged();
             StashAllFilesCommand.RaiseCanExecuteChanged();
             StashTempFilesCommand.RaiseCanExecuteChanged();
+            HardResetCommand.RaiseCanExecuteChanged();
         }
 
         #region Command Handlers
@@ -149,7 +150,7 @@ namespace LagoVista.GitHelper
             Task.Run(() =>
             {
                 var files = Untracked.Where(fil => fil.CurrentStatus == CurrentStatus.Untouched);
-                
+
                 var bldr = new StringBuilder("stash");
                 foreach (var file in files)
                 {
@@ -206,7 +207,7 @@ namespace LagoVista.GitHelper
                 IsBusy = true;
                 Task.Run(() =>
                 {
-                    RunProcess("git.exe", $"checkout {file.FullPath}", "undo changes", checkRemote:false);
+                    RunProcess("git.exe", $"checkout {file.FullPath}", "undo changes", checkRemote: false);
                 });
             }
         }
@@ -222,7 +223,7 @@ namespace LagoVista.GitHelper
                     {
                         System.IO.File.Delete(file.FullPath);
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
                         MessageBox.Show("Error deleting file");
                         _consoleWriter.AddMessage(LogType.Error, "Error deleting file.");
@@ -240,7 +241,7 @@ namespace LagoVista.GitHelper
             if (obj is GitManagedFile file)
             {
                 if (MessageBox.Show("In tool resolving of merges is not currently supported.  Would you like to use notepad to manually resolve conflicts?", "Conflicts", MessageBoxButton.YesNoCancel) == MessageBoxResult.Yes)
-            {
+                {
                     var proc = new Process
                     {
                         StartInfo = new ProcessStartInfo
@@ -251,14 +252,14 @@ namespace LagoVista.GitHelper
                             WorkingDirectory = Path,
                             RedirectStandardOutput = true,
                             RedirectStandardError = true,
-                            CreateNoWindow = true,                            
-                        }                        
+                            CreateNoWindow = true,
+                        }
                     };
 
                     proc.Start();
                     proc.WaitForExit();
 
-                    if(MessageBox.Show("Would you like to add your changes?", "Add Changes", MessageBoxButton.YesNoCancel) == MessageBoxResult.Yes)
+                    if (MessageBox.Show("Would you like to add your changes?", "Add Changes", MessageBoxButton.YesNoCancel) == MessageBoxResult.Yes)
                     {
                         IsBusy = true;
                         Task.Run(() =>
@@ -277,7 +278,7 @@ namespace LagoVista.GitHelper
             {
                 RunProcess("git.exe", $"add .", "stage files", checkRemote: false);
             });
-       }
+        }
 
         public void CommitFiles()
         {
@@ -292,7 +293,7 @@ namespace LagoVista.GitHelper
             IsBusy = true;
             Task.Run(() =>
             {
-                RunProcess("git.exe", $"commit -m \"{CommitMessage}\"", "committing files", checkRemote:false);
+                RunProcess("git.exe", $"commit -m \"{CommitMessage}\"", "committing files", checkRemote: false);
                 _dispatcher.BeginInvoke(DispatcherPriority.Normal, (Action)delegate
                 {
                     CommitMessage = String.Empty;
@@ -300,7 +301,7 @@ namespace LagoVista.GitHelper
                 Scan(false);
             });
         }
-        
+
         public void PullFiles()
         {
             IsBusy = true;
@@ -377,17 +378,17 @@ namespace LagoVista.GitHelper
             _consoleWriter.AddMessage(LogType.Message, "");
             _consoleWriter.Flush(clearConsole);
 
-            Scan(false, checkRemote:checkRemote);
+            Scan(false, checkRemote: checkRemote);
         }
 
         public void CleanChanges()
         {
-            if(MessageBox.Show("Are you absolutely sure, this can not be undone and you may lose work.", "Confirm", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+            if (MessageBox.Show("Are you absolutely sure, this can not be undone and you may lose work.", "Confirm", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
             {
                 IsBusy = true;
                 Task.Run(() =>
                 {
-                    RunProcess("git.exe", "clean -fx", "clean changes.", true, checkRemote:false);
+                    RunProcess("git.exe", "clean -fx", "clean changes.", true, checkRemote: false);
                 });
             }
         }
@@ -577,12 +578,64 @@ namespace LagoVista.GitHelper
         }
 
 
-        public ObservableCollection<GitManagedFile> Untracked { get; private set; } = new ObservableCollection<GitManagedFile>();
-        public ObservableCollection<GitManagedFile> NotStaged { get; private set; } = new ObservableCollection<GitManagedFile>();
-        public ObservableCollection<GitManagedFile> Staged { get; private set; } = new ObservableCollection<GitManagedFile>();
-        public ObservableCollection<GitManagedFile> Stashed { get; private set; } = new ObservableCollection<GitManagedFile>();
-        public ObservableCollection<GitManagedFile> Conflicted { get; private set; } = new ObservableCollection<GitManagedFile>();
-        public ObservableCollection<GitManagedFile> FilesToCommit { get { return new ObservableCollection<GitManagedFile>(NotStaged.Where(fil => fil.IsDirty)); } }
+        ObservableCollection<GitManagedFile> _untracked;
+        public ObservableCollection<GitManagedFile> Untracked
+        {
+            get { return _untracked; }
+            set
+            {
+                _untracked = value;
+                NotifyChanged(nameof(Untracked));
+            }
+        }
+
+        ObservableCollection<GitManagedFile> _notStaged;
+        public ObservableCollection<GitManagedFile> NotStaged
+        {
+            get { return _notStaged; }
+            set
+            {
+                _notStaged = value;
+                NotifyChanged(nameof(NotStaged));
+                NotifyChanged(nameof(FilesToCommit));
+            }
+        }
+
+        ObservableCollection<GitManagedFile> _staged;
+        public ObservableCollection<GitManagedFile> Staged
+        {
+            get { return _staged; }
+            set
+            {
+                _staged = value;
+                NotifyChanged(nameof(Staged));
+            }
+        }
+
+        ObservableCollection<GitManagedFile> _stashed;
+        public ObservableCollection<GitManagedFile> StashedFiles
+        {
+            get { return _stashed; }
+            set
+            {
+                _stashed = value;
+                NotifyChanged(nameof(StashedFiles));
+            }
+        }
+
+
+        ObservableCollection<GitManagedFile> _conflicted;
+        public ObservableCollection<GitManagedFile> Conflicted
+        {
+            get { return _conflicted; }
+            set
+            {
+                _conflicted = value;
+                NotifyChanged(nameof(Conflicted));
+            }
+        }
+
+        public ObservableCollection<GitManagedFile> FilesToCommit { get { return NotStaged != null ?  new ObservableCollection<GitManagedFile>(NotStaged.Where(fil => fil.IsDirty)) : null; } }
 
         public RelayCommand CommitCommand { get; private set; }
         public RelayCommand PushCommand { get; private set; }
@@ -602,9 +655,7 @@ namespace LagoVista.GitHelper
 
         public RelayCommand CleanUntrackedCommand { get; private set; }
         public RelayCommand HardResetCommand { get; private set; }
-
-        public ObservableCollection<GitManagedFile> StashedFiles { get; private set; } = new ObservableCollection<GitManagedFile>();
-
+        
         private bool _isBusy = false;
         public bool IsBusy
         {
@@ -717,11 +768,13 @@ namespace LagoVista.GitHelper
                 IsBusy = true;
                 HasUnpushedCommits = false;
                 IsBehindOrigin = false;
-                Untracked.Clear();
-                NotStaged.Clear();
-                StashedFiles.Clear();
-                Staged.Clear();
-                Conflicted.Clear();
+
+                Untracked = null;
+                NotStaged = null;
+                StashedFiles = null;
+                Staged = null;
+                Conflicted = null;
+
                 UnpushedCommitCount = 0;
                 BehindOriginCount = 0;
             });
@@ -798,11 +851,11 @@ namespace LagoVista.GitHelper
 
                 var bothChangedRegEx = new Regex(@"and have (?'localcommits'\d+) and (?'remotecommits'\d+) different commits each");
                 var bothChangedMatch = bothChangedRegEx.Match(line);
-                if(bothChangedMatch.Success)
+                if (bothChangedMatch.Success)
                 {
                     IsBehindOrigin = true;
                     HasUnpushedCommits = true;
-                    UnpushedCommitCount  = Convert.ToInt32(bothChangedMatch.Groups["localcommits"].Value);
+                    UnpushedCommitCount = Convert.ToInt32(bothChangedMatch.Groups["localcommits"].Value);
                     BehindOriginCount = Convert.ToInt32(bothChangedMatch.Groups["remotecommits"].Value);
                 }
 
@@ -982,6 +1035,11 @@ namespace LagoVista.GitHelper
 
             _dispatcher.BeginInvoke(DispatcherPriority.Normal, (Action)delegate
             {
+                Staged = new ObservableCollection<GitManagedFile>();
+                Untracked = new ObservableCollection<GitManagedFile>();
+                StashedFiles = new ObservableCollection<GitManagedFile>();
+                NotStaged = new ObservableCollection<GitManagedFile>();
+                Conflicted = new ObservableCollection<GitManagedFile>();
 
                 foreach (var file in stagedFilesToAdd) Staged.Add(file);
                 foreach (var file in untrackedFilesToAdd) Untracked.Add(file);

@@ -13,6 +13,11 @@ namespace LagoVista.GitHelper.Converters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
+            if(value == null)
+            {
+                return Visibility.Collapsed;
+            }
+
             if(value is IEnumerable<GitManagedFile> listItems)
             {
                 return listItems.Count() > 0 ? Visibility.Visible : Visibility.Collapsed;

@@ -120,6 +120,7 @@
                     <Grid Grid.Column="1" Grid.Row="0" >
                         <Grid Visibility="{Binding Path=CurrentFolder, Converter={StaticResource NotNullVisibilityConverter}, FallbackValue=Visible}" Background="White" >
                             <Grid.RowDefinitions>
+                                <RowDefinition Height="auto" />
                                 <RowDefinition Height="*" />
                                 <RowDefinition Height="auto" />
                             </Grid.RowDefinitions>
@@ -128,23 +129,7 @@
                                     <Setter Property="FontWeight" Value="Bold" />
                                 </Style>
                             </Grid.Resources>
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="auto" />
-                                    <RowDefinition Height="auto" />
-
-                                    <RowDefinition Height="auto" />
-
-                                    <RowDefinition Height="auto" />
-
-                                    <RowDefinition Height="auto" />
-
-                                    <RowDefinition Height="auto" />
-
-                                    <RowDefinition Height="auto" />
-
-                                </Grid.RowDefinitions>
-                                <StackPanel >
+                                <StackPanel Grid.Row="0" >
                                     <StackPanel.Resources>
                                         <Style TargetType="Button" >
                                             <Setter Property="Margin" Value="2" />
@@ -176,7 +161,24 @@
                                         <Button Content="!! Reset Hard !!" Command="{Binding CurrentFolder.HardResetCommand}" Background="Red" Foreground="White" Width="120" />
                                     </StackPanel>
                                 </StackPanel>
-                                <Label Grid.Row="1" FontSize="24" Content="{Binding CurrentFolder.Label}"></Label>
+                            <ScrollViewer Grid.Row="1">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="auto" />
+                                        <RowDefinition Height="auto" />
+
+                                        <RowDefinition Height="auto" />
+
+                                        <RowDefinition Height="auto" />
+
+                                        <RowDefinition Height="auto" />
+
+                                        <RowDefinition Height="auto" />
+
+                                        <RowDefinition Height="auto" />
+
+                                    </Grid.RowDefinitions>
+                                    <Label Grid.Row="1" FontSize="24" Content="{Binding CurrentFolder.Label}"></Label>
 
                                 <Grid Grid.Row="2" x:Name="StashedFileSection" Visibility="{Binding CurrentFolder.StashedFiles, Converter={StaticResource EmptyListVisibilityConverter}}">
                                     <Label Content="Stashed files" Grid.Row="2"></Label>
@@ -249,25 +251,26 @@
                                     </ListView>
                                 </Grid>
 
-                                <Grid Grid.Row="6" x:Name="ConflictedFilesSection" Visibility="{Binding CurrentFolder.Conflicted, Converter={StaticResource EmptyListVisibilityConverter}}">
-                                    <Label Content="Conflicted" ></Label>
-                                    <ListBox x:Name="ConflictedFilesList" ItemsSource="{Binding CurrentFolder.Conflicted}" Grid.Row="11" FontFamily="Consolas" Margin="0,30,0,8" HorizontalContentAlignment="Stretch" SelectedItem="{Binding CurrentFile}" >
-                                        <ListBox.ItemTemplate>
-                                            <DataTemplate>
-                                                <Grid>
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*" />
-                                                        <ColumnDefinition Width="auto" />
-                                                    </Grid.ColumnDefinitions>
-                                                    <TextBlock Text="{Binding ListLabel}" Foreground="{Binding Path=CurrentStatus, Converter={StaticResource ColorConverter}}" />
-                                                    <Button Command="{Binding MergeCommand}" Content="Merge" Width="120" Grid.Column="1" Margin="0,0,10,0" />
-                                                </Grid>
-                                            </DataTemplate>
-                                        </ListBox.ItemTemplate>
-                                    </ListBox>
+                                    <Grid Grid.Row="6" x:Name="ConflictedFilesSection" Visibility="{Binding CurrentFolder.Conflicted, Converter={StaticResource EmptyListVisibilityConverter}}">
+                                        <Label Content="Conflicted" ></Label>
+                                        <ListBox x:Name="ConflictedFilesList" ItemsSource="{Binding CurrentFolder.Conflicted}" Grid.Row="11" FontFamily="Consolas" Margin="0,30,0,8" HorizontalContentAlignment="Stretch" SelectedItem="{Binding CurrentFile}" >
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="auto" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Text="{Binding ListLabel}" Foreground="{Binding Path=CurrentStatus, Converter={StaticResource ColorConverter}}" />
+                                                        <Button Command="{Binding MergeCommand}" Content="Merge" Width="120" Grid.Column="1" Margin="0,0,10,0" />
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                    </Grid>
                                 </Grid>
-                            </Grid>
-                            <Grid Grid.Row="1">
+                            </ScrollViewer>
+                            <Grid Grid.Row="2">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="30"/>
                                     <RowDefinition Height="*" />
@@ -281,7 +284,9 @@
                                 <Button Content="Commit Files" Command="{Binding CurrentFolder.CommitCommand}" Width="120" Grid.Column="1" Grid.Row="1" />
                             </Grid>
                         </Grid>
+                        
                     </Grid>
+                    
                     <Grid Grid.Column="2">
                         <ListView ItemsSource="{Binding ConsoleLogOutput}" Background="Blue" x:Name="MainOutputWindow" Grid.Row="1" Grid.Column="1" >
                             <ListView.ItemTemplate>
