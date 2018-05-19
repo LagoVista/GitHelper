@@ -2,6 +2,7 @@
 using System;
 using System.ComponentModel;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Windows.Threading;
 
 namespace LagoVista.GitHelper
@@ -133,7 +134,26 @@ namespace LagoVista.GitHelper
                 IsDirty = (FileType != FileTypes.TempFile);
                 if (System.IO.File.Exists(FullPath))
                 {
-                    Changes = System.IO.File.ReadAllText(FullPath);
+                    var retry = 0;
+                    var completed = false;
+                    while (retry < 5 && !completed)
+                    {
+                        try
+                        {
+                            Changes = System.IO.File.ReadAllText(FullPath);
+                            completed = true;
+                        }
+                        catch (Exception)
+                        {
+                            retry++;
+                            Task.Delay(50 * retry).Wait();
+                        }
+                    }
+
+                    if(!completed)
+                    {
+                        return;
+                    }
                 }
                 else
                 {
