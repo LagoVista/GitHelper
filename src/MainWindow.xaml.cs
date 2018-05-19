@@ -15,13 +15,12 @@ namespace LagoVista.GitHelper
     {
         MainViewModel _vm;
 
-        private string _rootPath;
+        //private readonly string _rootPath = @"D:\nuviot";
 
         public MainWindow()
         {
             InitializeComponent();
             this.Loaded += MainWindow_Loaded;
-            _rootPath = @"D:\nuviot";
         }
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)

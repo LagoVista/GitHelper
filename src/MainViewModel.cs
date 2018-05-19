@@ -28,7 +28,7 @@ namespace LagoVista.GitHelper
             var rp = Properties.Settings.Default["RootPath"];
             RootPath = rp == null ? @"D:\NuvIoT" : rp.ToString();
 
-            if(!System.IO.Directory.Exists(RootPath))
+            if (!System.IO.Directory.Exists(RootPath))
             {
                 MessageBox.Show($"Path [{RootPath}] does not exist, please set it to the root of your project structure, save settings and restart the application.");
                 IsReady = false;
@@ -43,7 +43,7 @@ namespace LagoVista.GitHelper
             BuildTools = new Builder(_rootPath, _buildConsoleWriter, dispatcher);
 
             RefreshCommand = new RelayCommand(Refresh, CanRefresh);
-            
+
 
             IsReady = true;
 
@@ -70,10 +70,7 @@ namespace LagoVista.GitHelper
 
         private void NotifyChanged(string propertyName)
         {
-            if (PropertyChanged != null)
-            {
-                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
-            }
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
         public void Refresh(Object obj)
@@ -87,13 +84,16 @@ namespace LagoVista.GitHelper
 
             var dirs = System.IO.Directory.GetDirectories(_rootPath);
             ScanMax = dirs.Length;
+            ScanProgress = 0;
             ScanVisibility = Visibility.Visible;
 
             Task.Run(() =>
             {
-                Folders = new ObservableCollection<GitManagedFolder>();
+                IsBusy = true;
 
-                foreach (var dir in dirs)
+                var folders = new List<GitManagedFolder>();
+                
+                Parallel.ForEach(dirs, (dir) =>
                 {
                     _dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, (Action)delegate
                     {
@@ -102,26 +102,57 @@ namespace LagoVista.GitHelper
                     });
 
                     var folder = ScanTree(dir);
-                    IsBusy = true;
                     if (folder != null)
                     {
+                        folders.Add(folder);
                         folder.IsBusyEvent += (sndr, args) => IsBusy = args;
-                        var fileWatcher = new FileSystemWatcher(dir, "*");
-                        fileWatcher.IncludeSubdirectories = true;
-                        fileWatcher.EnableRaisingEvents = true;
-                        fileWatcher.NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.CreationTime | NotifyFilters.Size | NotifyFilters.DirectoryName | NotifyFilters.LastAccess;
+                        var fileWatcher = new FileSystemWatcher(dir, "*")
+                        {
+                            IncludeSubdirectories = true,
+                            EnableRaisingEvents = true,
+                            NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.CreationTime | NotifyFilters.Size | NotifyFilters.DirectoryName | NotifyFilters.LastAccess
+                        };
                         fileWatcher.Created += FileWatcher_Created;
                         fileWatcher.Deleted += FileWatcher_Deleted;
                         fileWatcher.Renamed += FileWatcher_Renamed;
                         fileWatcher.Changed += FileWatcher_Changed;
                         _fileWatchers.Add(fileWatcher);
-
-                        _dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, (Action)delegate
-                        {
-                            Folders.Add(folder);
-                        });
                     }
-                }
+                });
+                _dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, (Action)delegate
+                {
+                    Folders = new ObservableCollection<GitManagedFolder>(folders.OrderBy(f => f.Label));
+                });
+                
+                //foreach (var dir in dirs)
+                //{
+                //    _dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, (Action)delegate
+                //    {
+                //        Status = "Scanning: " + dir;
+                //        ScanProgress = ScanProgress + 1.0;
+                //    });
+
+                //    var folder = ScanTree(dir);
+                //    IsBusy = true;
+                //    if (folder != null)
+                //    {
+                //        folder.IsBusyEvent += (sndr, args) => IsBusy = args;
+                //        var fileWatcher = new FileSystemWatcher(dir, "*");
+                //        fileWatcher.IncludeSubdirectories = true;
+                //        fileWatcher.EnableRaisingEvents = true;
+                //        fileWatcher.NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.CreationTime | NotifyFilters.Size | NotifyFilters.DirectoryName | NotifyFilters.LastAccess;
+                //        fileWatcher.Created += FileWatcher_Created;
+                //        fileWatcher.Deleted += FileWatcher_Deleted;
+                //        fileWatcher.Renamed += FileWatcher_Renamed;
+                //        fileWatcher.Changed += FileWatcher_Changed;
+                //        _fileWatchers.Add(fileWatcher);
+
+                //        _dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, (Action)delegate
+                //        {
+                //            Folders.Add(folder);
+                //        });
+                //    }
+                //}
 
                 _dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, (Action)delegate
                 {
@@ -254,8 +285,11 @@ namespace LagoVista.GitHelper
                     {
                         _dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, (Action)delegate
                         {
-                            folder.NotStaged.Remove(file);
-                            folder.NotStagedFileStatus = folder.NotStaged.Where(utf => utf.IsDirty).Any() ? CurrentStatus.Dirty : CurrentStatus.Untouched;
+                            if (folder.NotStaged != null)
+                            {
+                                folder.NotStaged.Remove(file);
+                                folder.NotStagedFileStatus = folder.NotStaged.Where(utf => utf.IsDirty).Any() ? CurrentStatus.Dirty : CurrentStatus.Untouched;
+                            }
                         });
 
                         return;
@@ -277,15 +311,14 @@ namespace LagoVista.GitHelper
                         switch (file.State)
                         {
                             case GitFileState.Untracked:
-                                if(!folder.Untracked.Where(fil=>fil.Label == file.Label).Any()) folder.Untracked.Add(file);
-
+                                if (!folder.Untracked.Where(fil => fil.Label == file.Label).Any()) folder.Untracked.Add(file);
                                 break;
                             case GitFileState.Staged:
                                 break;
                             case GitFileState.Conflicted:
                                 break;
                             case GitFileState.NotStaged:
-                                if (!folder.NotStaged.Where(fil => fil.Label == file.Label).Any()) folder.Untracked.Add(file);
+                                if (folder.NotStaged != null && !folder.NotStaged.Where(fil => fil.Label == file.Label).Any()) folder.Untracked.Add(file);
                                 break;
                         }
                     }
@@ -305,13 +338,15 @@ namespace LagoVista.GitHelper
             {
                 _dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, (Action)delegate
                 {
-                    var file = folder.Untracked.Where(fil => fil.FullPath == fullFileName).FirstOrDefault();
-                    if (file != null)
+                    if (folder.Untracked != null)
                     {
-                        folder.Untracked.Remove(file);
+                        var file = folder.Untracked.Where(fil => fil.FullPath == fullFileName).FirstOrDefault();
+                        if (file != null)
+                        {
+                            folder.Untracked.Remove(file);
+                        }
+                        folder.UntrackedFileStatus = folder.Untracked.Where(utf => utf.IsDirty).Any() ? CurrentStatus.Dirty : CurrentStatus.Untouched;
                     }
-
-                    folder.UntrackedFileStatus = folder.Untracked.Where(utf => utf.IsDirty).Any() ? CurrentStatus.Dirty : CurrentStatus.Untouched;
                     folder.IsDirty = folder.NotStagedFileStatus == CurrentStatus.Dirty || folder.ConflictFileStatus == CurrentStatus.Dirty || folder.UntrackedFileStatus == CurrentStatus.Dirty;
                 });
             }
@@ -477,9 +512,9 @@ namespace LagoVista.GitHelper
             var folder = new GitManagedFolder(_dispatcher, _consoleWriter);
             folder.Label = dir.Split('\\').Last();
             folder.Path = dir;
-            var result = folder.Scan(resetAllClear:false);
+            var result = folder.Scan(resetAllClear: false);
 
-            return result ? folder :null;
+            return result ? folder : null;
         }
 
         #region Properties
@@ -599,7 +634,7 @@ namespace LagoVista.GitHelper
                     });
                 }
 
-                
+
             }
         }
         #endregion
