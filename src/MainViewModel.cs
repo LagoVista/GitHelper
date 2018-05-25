@@ -247,6 +247,9 @@ namespace LagoVista.GitHelper
 
         private void HandleFileUpdated(string directoryName, string fullFileName, string changeType)
         {
+            /* If we are in a build or other operation, ignore any updates files, will do a scan afterwards */
+            if (IsBusy) return;
+
             var extension = Path.GetExtension(fullFileName).ToLower();
             if (ShouldIgnore(directoryName, fullFileName, changeType)) return;
 
