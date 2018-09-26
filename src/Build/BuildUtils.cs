@@ -25,7 +25,7 @@ namespace GitHelper.Build
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = "dotnet",
-                    Arguments = $"build \"{solutionFile}\" -c {configuration}",
+                    Arguments = $"build \"{solutionFile}\" -v m --no-incremental -c {configuration}",
                     UseShellExecute = false,
                     WorkingDirectory = solutionPath,
                     RedirectStandardOutput = true,
@@ -53,7 +53,7 @@ namespace GitHelper.Build
 
             if (proc.ExitCode != 0)
             {
-                errs.Append("Restore Failed!");
+                errs.Append("Build Failed!");
             }
 
             _consoleWriter.Flush(false);
