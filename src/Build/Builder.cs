@@ -201,11 +201,11 @@ namespace GitHelper.Build
             var totalCount = solutionsToBuild.Count();
             foreach (var solution in solutionsToBuild)
             {
-                solution.Status = BuildStatus.Restoring;
-                solution.StatusMessage = "Building";
                 var start = DateTime.Now;
                 _writer.AddMessage(LogType.Message, $"Build started: {solution.Name} ({idx++} of {totalCount})");
                 _writer.AddMessage(LogType.Message, $"===============================================");
+                solution.Status = BuildStatus.Restoring;
+                solution.StatusMessage = "Restoring";
                 result = _buildUtils.Restore(_rootPath, solution);
                 if (!result.Successful)
                 {
@@ -223,6 +223,7 @@ namespace GitHelper.Build
                     return InvokeResult.FromError("Build Cancelled");
                 }
 
+                solution.StatusMessage = "Building";
                 solution.Status = BuildStatus.Building;
                 result = _buildUtils.Build(_rootPath, solution, configuration);
                 if (!result.Successful)
