@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
@@ -160,8 +159,10 @@ namespace GitHelper.Build
             var processStart = DateTime.Now;
 
             var result = _nugetUtils.RemoveAllOldPackages(_rootPath);
-            if (!result.Successful) return result.ToInvokeResult();
-
+            if (!result.Successful)
+            {
+                return result.ToInvokeResult();
+            }
 
             NugetVersion = _nugetHelpers.GenerateNugetVersion(major, minor, DateTime.Now);
 
@@ -170,24 +171,30 @@ namespace GitHelper.Build
             var updatedPackages = new List<string>();
             /* If we are doing a partial build, get a list of the packages names that will get built, if the list is empty when we
              * update the csproj files we will update everything to the latest nuget, otherwise we will only do what we are building */
-            if (PartialBuild)
+            //if (PartialBuild)
+            //{
+            foreach (var solution in solutionsToBuild)
             {
-                foreach (var solution in solutionsToBuild)
+                foreach (var packageName in solution.Packages)
                 {
-                    foreach (var packageName in solution.Packages)
-                    {
-                        updatedPackages.Add(packageName);
-                    }
+                    updatedPackages.Add(packageName);
                 }
             }
+            //}
 
             foreach (var solution in solutionsToBuild)
             {
                 result = _nugetHelpers.ApplyToCSProjects(_rootPath, solution, NugetVersion, updatedPackages);
-                if (!result.Successful) return result.ToInvokeResult();
+                if (!result.Successful)
+                {
+                    return result.ToInvokeResult();
+                }
 
                 result = _nugetHelpers.ApplyToAllNuspecFiles(_rootPath, solution, NugetVersion);
-                if (!result.Successful) return result.ToInvokeResult();
+                if (!result.Successful)
+                {
+                    return result.ToInvokeResult();
+                }
             }
 
             _writer.Flush(true);
