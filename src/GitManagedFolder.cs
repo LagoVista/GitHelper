@@ -225,8 +225,8 @@ namespace LagoVista.GitHelper
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show("Error deleting file");
-                        _consoleWriter.AddMessage(LogType.Error, "Error deleting file.");
+                        MessageBox.Show($"Error deleting file: {ex.Message}" );
+                        _consoleWriter.AddMessage(LogType.Error, $"Error deleting file: {ex.Message}");
                         return;
                     }
 
