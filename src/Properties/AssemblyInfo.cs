@@ -7,12 +7,12 @@ using System.Windows;
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("WpfApp1")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyTitle("SL Git Helper")]
+[assembly: AssemblyDescription("Manage NuvIoT GIT repositories and perform full system builds.")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("WpfApp1")]
-[assembly: AssemblyCopyright("Copyright ©  2018")]
+[assembly: AssemblyCompany("Software Logistics")]
+[assembly: AssemblyProduct("SL Git Helper")]
+[assembly: AssemblyCopyright("Copyright © Software Logistics  2018")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

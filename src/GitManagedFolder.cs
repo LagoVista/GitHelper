@@ -68,10 +68,7 @@ namespace LagoVista.GitHelper
         {
             _dispatcher.BeginInvoke(DispatcherPriority.Normal, (Action)delegate
             {
-                if (PropertyChanged != null)
-                {
-                    PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
-                }
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
             });
         }
 
@@ -495,19 +492,11 @@ namespace LagoVista.GitHelper
         {
             get
             {
-                if (String.IsNullOrEmpty(_label))
-                {
-                    return _label;
-                }
-
-                if (BehindOriginCount > 0 || UnpushedCommitCount > 0)
-                {
-                    return $"{_label} ({BehindOriginCount}/{UnpushedCommitCount}) ";
-                }
-                else
-                {
-                    return _label;
-                }
+                return String.IsNullOrEmpty(_label)
+                    ? _label
+                    : BehindOriginCount > 0 || UnpushedCommitCount > 0
+                    ? $"{_label} ({BehindOriginCount}/{UnpushedCommitCount}) "
+                    : _label;
             }
             set
             {
