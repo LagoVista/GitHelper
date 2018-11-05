@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Data;
 using System.Windows.Media;
 
@@ -15,11 +11,14 @@ namespace LagoVista.GitHelper.Converters
         {
             if (value is LogType logType)
             {
-                switch(logType)
+                switch (logType)
                 {
-                    case LogType.Error: return Brushes.Red;
-                    case LogType.Warning: return Brushes.Yellow;
-                    case LogType.Success: return Brushes.Lime;
+                    case LogType.Error:
+                        return Brushes.Red;
+                    case LogType.Warning:
+                        return Brushes.Yellow;
+                    case LogType.Success:
+                        return Brushes.Lime;
                 }
             }
 

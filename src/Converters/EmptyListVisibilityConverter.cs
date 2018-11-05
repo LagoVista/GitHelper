@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Data;
 
@@ -13,12 +11,12 @@ namespace LagoVista.GitHelper.Converters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if(value == null)
+            if (value == null)
             {
                 return Visibility.Collapsed;
             }
 
-            if(value is IEnumerable<GitManagedFile> listItems)
+            if (value is IEnumerable<GitManagedFile> listItems)
             {
                 return listItems.Count() > 0 ? Visibility.Visible : Visibility.Collapsed;
             }

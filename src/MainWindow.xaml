@@ -288,7 +288,7 @@
                     </Grid>
 
                     <Grid Grid.Column="2">
-                        <ListView ItemsSource="{Binding ConsoleLogOutput}" Background="Blue" x:Name="MainOutputWindow" Grid.Row="1" Grid.Column="1" >
+                        <ListView ItemsSource="{Binding ConsoleLogOutput}" Background="Navy" x:Name="MainOutputWindow" Grid.Row="1" Grid.Column="1" >
                             <ListView.ItemTemplate>
                                 <DataTemplate>
                                     <TextBlock FontSize="12" Text="{Binding Output}" FontFamily="Consolas" Foreground="{Binding LogType, Converter={StaticResource LogTypeColorCodeConverter}}" />
@@ -373,7 +373,7 @@
                             </ListBox>
                         </Grid>
                     </Grid>
-                    <ListView ItemsSource="{Binding BuildConsoleLogOutput}" Background="Blue" x:Name="OutputWindow" Grid.Row="0" Grid.RowSpan="2" Grid.Column="1" >
+                    <ListView ItemsSource="{Binding BuildConsoleLogOutput}" Background="Navy" x:Name="OutputWindow" Grid.Row="0" Grid.RowSpan="2" Grid.Column="1" >
                         <ListView.ItemTemplate>
                             <DataTemplate>
                                 <TextBlock FontSize="12" Text="{Binding Output}" FontFamily="Consolas" Foreground="{Binding LogType, Converter={StaticResource LogTypeColorCodeConverter}}" />

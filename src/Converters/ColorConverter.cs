@@ -1,10 +1,6 @@
 ﻿using GitHelper.Build;
 using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Data;
 using System.Windows.Media;
 
@@ -18,9 +14,12 @@ namespace LagoVista.GitHelper.Converters
             {
                 switch (fileStatus)
                 {
-                    case CurrentStatus.Conflicts: return Brushes.Red;
-                    case CurrentStatus.Dirty: return Brushes.Green;
-                    case CurrentStatus.Untouched: return Brushes.Gray;
+                    case CurrentStatus.Conflicts:
+                        return Brushes.Red;
+                    case CurrentStatus.Dirty:
+                        return Brushes.Green;
+                    case CurrentStatus.Untouched:
+                        return Brushes.Gray;
                 }
             }
 
@@ -30,8 +29,10 @@ namespace LagoVista.GitHelper.Converters
                 {
                     switch (buildStatus)
                     {
-                        case BuildStatus.Built: return Brushes.White;
-                        case BuildStatus.Error: return Brushes.White;
+                        case BuildStatus.Built:
+                            return Brushes.White;
+                        case BuildStatus.Error:
+                            return Brushes.White;
                     }
 
                     return Brushes.Black;
@@ -40,11 +41,13 @@ namespace LagoVista.GitHelper.Converters
                 {
                     switch (buildStatus)
                     {
-                        case BuildStatus.Built: return Brushes.Green;
-                        case BuildStatus.Error: return Brushes.Red;
+                        case BuildStatus.Built:
+                            return Brushes.Green;
+                        case BuildStatus.Error:
+                            return Brushes.Crimson;
                     }
 
-                    return Brushes.Yellow;
+                    return Brushes.Gold;
                 }
             }
 
