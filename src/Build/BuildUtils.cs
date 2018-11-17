@@ -78,7 +78,7 @@ namespace GitHelper.Build
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = "dotnet",
-                    Arguments = $"restore {solutionPath} --configfile {nugetConfig}  ",
+                    Arguments = $"restore {solutionPath}\\{solution.Solution} --configfile {nugetConfig}  ",
                     UseShellExecute = false,
                     WorkingDirectory = solutionPath,
                     RedirectStandardOutput = true,
