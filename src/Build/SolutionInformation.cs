@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Threading;
 
 namespace GitHelper.Build
@@ -21,7 +18,7 @@ namespace GitHelper.Build
 
     public class SolutionInformation : INotifyPropertyChanged
     {
-        Dispatcher _dispatcher;
+        private Dispatcher _dispatcher;
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -32,7 +29,7 @@ namespace GitHelper.Build
 
         private void NotifyChanged(string propertyName)
         {
-            _dispatcher.BeginInvoke(DispatcherPriority.Normal, (Action)delegate
+            _dispatcher?.BeginInvoke(DispatcherPriority.Normal, (Action)delegate
             {
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
             });
@@ -51,12 +48,12 @@ namespace GitHelper.Build
         public bool Private { get; set; }
         public bool ShouldBuild { get; set; }
 
-        public List<String> Packages { get; set; } = new List<string>();
+        public List<string> Packages { get; set; } = new List<string>();
 
         private bool _build = true;
         public bool Build
         {
-            get{ return _build; }
+            get => _build;
             set
             {
                 _build = value;
@@ -67,7 +64,7 @@ namespace GitHelper.Build
         public BuildStatus _status;
         public BuildStatus Status
         {
-            get { return _status; }
+            get => _status;
             set
             {
                 _status = value;
@@ -78,7 +75,7 @@ namespace GitHelper.Build
         private string _statusMessage;
         public string StatusMessage
         {
-            get { return _statusMessage; }
+            get => _statusMessage;
             set
             {
                 _statusMessage = value;
