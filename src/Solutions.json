@@ -1,11 +1,11 @@
-﻿[
+[
     {
         "Name": "Core",
         "LocalPath": "co.Core",
         "Repo": "https://github.com/lagovista/core",
         "Solution": "Core.sln",
         "Private": false,
-        "Build": true
+        "ShouldBuild": true
     },
     {
         "Name": "Logging",
@@ -13,7 +13,7 @@
         "Repo": "https://github.com/lagovista/logging",
         "Solution": "Logging.sln",
         "Private": false,
-        "Build": true
+        "ShouldBuild": true
     },
     {
         "Name": "Cloud Storage",
@@ -21,7 +21,7 @@
         "Repo": "https://github.com/lagovista/cloudstorage",
         "Solution": "CloudStorage.sln",
         "Private": false,
-        "Build": true
+        "ShouldBuild": true
     },
     {
         "Name": "User Admin",
@@ -29,7 +29,7 @@
         "Repo": "https://github.com/lagovista/useradmin",
         "Solution": "UserAdmin.sln",
         "Private": false,
-        "Build": true
+        "ShouldBuild": true
     },
     {
         "Name": "Web Common",
@@ -37,15 +37,15 @@
         "Repo": "https://github.com/lagovista/webcommon",
         "Solution": "WebCommon.sln",
         "Private": false,
-        "Build": true
+        "ShouldBuild": true
     },            
     {
         "Name": "Device Admin",
         "LocalPath": "da.DeviceAdmin",
         "Repo": "https://github.com/lagovista/deviceadmin",
-        "Solution": "WebCommon.sln",
+        "Solution": "DeviceAdmin.sln",
         "Private": false,
-        "Build": true
+        "ShouldBuild": true
     },                
     {
         "Name": "Device Messaging",
@@ -53,7 +53,7 @@
         "Repo": "https://github.com/lagovista/DeviceMessagingAdmin",
         "Solution": "DeviceMessagingAdmin.sln",
         "Private": false,
-        "Build": true
+        "ShouldBuild": true
     },                
     {
         "Name": "Pipeline Management",
@@ -61,7 +61,7 @@
         "Repo": "https://github.com/lagovista/PipelineManagement",
         "Solution": "PipelineManagement.sln",
         "Private": false,
-        "Build": true
+        "ShouldBuild": true
     },                
     {
         "Name": "Device Management",
@@ -69,15 +69,15 @@
         "Repo": "https://github.com/lagovista/DeviceManagement",
         "Solution": "DeviceManagement.sln",
         "Private": false,
-        "Build": true
+        "ShouldBuild": true
     },               
     {
         "Name": "Simulator Services",
-        "LocalPath": "sm.SimulatorServices",
+        "LocalPath": "ss.SimulatorServices",
         "Repo": "https://github.com/lagovista/SimulatorServices",
         "Solution": "SimulatorServices.sln",
         "Private": false,
-        "Build": true
+        "ShouldBuild": true
     },                
     {
         "Name": "Deployment Management",
@@ -85,7 +85,7 @@
         "Repo": "https://github.com/lagovista/Deployments",
         "Solution": "Deployments.sln",
         "Private": false,
-        "Build": true
+        "ShouldBuild": true
     },                
     {
         "Name": "Runtime Core",
@@ -93,7 +93,7 @@
         "Repo": "https://github.com/lagovista/Runtime",
         "Solution": "Runtime.sln",
         "Private": false,
-        "Build": true
+        "ShouldBuild": true
     },                                
     {
         "Name": "Verifiers",
@@ -101,7 +101,7 @@
         "Repo": "https://github.com/lagovista/Verifiers",
         "Solution": "Verifiers.sln",
         "Private": false,
-        "Build": true
+        "ShouldBuild": true
     },      
     {
         "Name": "User Admin Rest Services",
@@ -109,7 +109,7 @@
         "Repo": "https://github.com/lagovista/UserAdminRest",
         "Solution": "UserAdminRest.sln",
         "Private": false,
-        "Build": true
+        "ShouldBuild": true
     },      
     {
         "Name": "Billing",
@@ -117,7 +117,7 @@
         "Repo": "https://slsys.visualstudio.com/LagoVista/_git/NuvIotBilling",
         "Solution": "Billing.sln",
         "Private": true,
-        "Build": true
+        "ShouldBuild": true
     },      
     {
         "Name": "Project Management",
@@ -125,7 +125,15 @@
         "Repo": "https://slsys.visualstudio.com/LagoVista/_git/ProjectManagement",
         "Solution": "ProjectManagement.sln",
         "Private": true,
-        "Build": true
+        "ShouldBuild": true
+    },    
+	{
+        "Name": "Geo Navigation",
+        "LocalPath": "ge.GeoNavigation",
+        "Repo": "https://slsys.visualstudio.com/LagoVista/_git/GeoNavigation",
+        "Solution": "GeoNavigation.sln",
+        "Private": true,
+        "ShouldBuild": true
     },    
     {
         "Name": "Starter Kit",
@@ -133,23 +141,23 @@
         "Repo": "https://github.com/lagovista/starterkit",
         "Solution": "StarterKit.sln",
         "Private": false,
-        "Build": true
+        "ShouldBuild": true
     },                 
     {
         "Name": "View Manager",
         "LocalPath": "vm.ViewManager",
         "Repo": "https://slsys.visualstudio.com/LagoVista/_git/ViewManager",
-        "Solution": "Billing.sln",
+        "Solution": "ViewManager.sln",
         "Private": true,
-        "Build": true
+        "ShouldBuild": true
     },      
     {
         "Name": "App Support",
-        "LocalPath": "as.AppSupport",
+        "LocalPath": "as.NuvIoTAppSupport",
         "Repo": "https://slsys.visualstudio.com/LagoVista/_git/NuvIoTAppSupport",
         "Solution": "AppSupport.sln",
         "Private": true,
-        "Build": true
+        "ShouldBuild": true
     },                                                
     {
         "Name": "IoT Engine",
@@ -157,7 +165,7 @@
         "Repo": "https://slsys.visualstudio.com/LagoVista/_git/IoTEngine",
         "Solution": "Engine.sln",
         "Private": true,
-        "Build": true
+        "ShouldBuild": true
     },      
     {
         "Name": "NuvIoT Web/API",
@@ -165,23 +173,23 @@
         "Repo": "https://slsys.visualstudio.com/LagoVista/_git/Web",
         "Solution": "Web.sln",
         "Private": true,
-        "Build": true
+        "ShouldBuild": true
     },
     {
-        "Name": "NuvIoT Web/API",
+        "Name": "Notifications Server",
         "LocalPath": "no.Notifications",
         "Repo": "https://slsys.visualstudio.com/LagoVista/_git/NotificationServer",
         "Solution": "NotificationServer.sln",
         "Private": true,
-        "Build": true
+        "ShouldBuild": true
     },    
     {
         "Name": "Integration Tests",
-        "LocalPath": "no.Notifications",
+        "LocalPath": "ni.IntegrationTests",
         "Repo": "https://slsys.visualstudio.com/LagoVista/_git/Nuviot.IntegrationTests",
         "Solution": "IntegrationTests.sln",
-        "Private": false,
-        "Build": true
+        "Private": true,
+        "ShouldBuild": false
     },
     {
         "Name": "Master Control Program",
@@ -189,6 +197,6 @@
         "Repo": "https://slsys.visualstudio.com/LagoVista/_git/MCP",
         "Solution": "mcp.sln",
         "Private": true,
-        "Build": true
+        "ShouldBuild": true
     }                                                    
 ]
