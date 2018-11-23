@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         xmlns:cvt="clr-namespace:LagoVista.GitHelper.Converters"
-        Title="NuvIoT Build Tools" Height="950" Width="1800" WindowStartupLocation="CenterScreen" WindowState="Maximized">
+        Title="NuvIoT Build Tools" Height="950" Width="1800" WindowStartupLocation="CenterScreen">
 
     <Grid x:Name="Page">
         <Grid.RowDefinitions>
@@ -16,6 +16,7 @@
         <TabControl  >
             <TabControl.Resources>
                 <cvt:ColorConverter x:Key="ColorConverter" />
+                <cvt:VisibilityConverter x:Key="VisibilityConverter" />
                 <cvt:NotNullVisibilityConverter x:Key="NotNullVisibilityConverter" />
                 <cvt:LogTypeColorCodeConverter x:Key="LogTypeColorCodeConverter" />
                 <cvt:EmptyListVisibilityConverter x:Key="EmptyListVisibilityConverter" />
@@ -342,7 +343,6 @@
                             <RadioButton GroupName="BuildMethod" Content="Partial Build" Margin="5" IsChecked="{Binding BuildTools.PartialBuild, Mode=TwoWay}"/>
                         </StackPanel>
 
-
                         <Grid Grid.Row="2">
                             <ListBox ItemsSource="{Binding BuildTools.SolutionFiles}" Grid.Row="2" HorizontalContentAlignment="Stretch" >
                                 <ListBox.ItemTemplate>
@@ -382,6 +382,130 @@
                     </ListView>
                 </Grid>
 
+            </TabItem>
+            <TabItem Header="Dependencies">
+                <Grid  DataContext="{Binding DependencyManager}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="500"></ColumnDefinition>
+                        <ColumnDefinition Width="50*"></ColumnDefinition>
+                        <ColumnDefinition Width="50*"></ColumnDefinition>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="auto"></RowDefinition>
+                        <RowDefinition Height="100" ></RowDefinition>
+                        <RowDefinition Height="200" ></RowDefinition>
+                        <RowDefinition Height="*" ></RowDefinition>
+                    </Grid.RowDefinitions>
+                    <StackPanel>
+                        <Button Content="Refresh" Command="{Binding RefreshCommand}" Width="120" Height="30" HorizontalAlignment="Left" Margin="5"  />
+                        <StackPanel Orientation="Horizontal">
+                            <Label Content="LagoVista: " ></Label>
+                            <CheckBox  Content="Show LagoVista" Margin="5" IsChecked="{Binding ShowLagoVista, Mode=TwoWay}"/>
+                            <CheckBox  Content="Prerelease" Margin="5" IsChecked="{Binding Prerelease, Mode=TwoWay}"/>
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton GroupName="PackageDisplay" Content="Show All" Margin="5" IsChecked="{Binding ShowAll, Mode=TwoWay}" />
+                            <RadioButton GroupName="PackageDisplay" Content="Version Mismatch" Margin="5" IsChecked="{Binding ShowVersionMisMatch, Mode=TwoWay}"/>
+                            <RadioButton GroupName="PackageDisplay" Content="Updateable" Margin="5" IsChecked="{Binding ShowUpdatable, Mode=TwoWay}"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <ListBox Grid.Row="1" ItemsSource="{Binding Packages}" SelectedItem="{Binding SelectedPackage, Mode=TwoWay}" Grid.RowSpan="3" HorizontalContentAlignment="Stretch">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Background="{Binding ., Converter={StaticResource ColorConverter}}" >
+                                    <Grid Margin="5">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="*" />
+                                            <RowDefinition Height="*" />
+                                        </Grid.RowDefinitions>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding Name}" Foreground="{Binding ., Converter={StaticResource ColorConverter}, ConverterParameter=foreground}"   Grid.ColumnSpan="3"  FontSize="16"/>
+                                            <TextBlock Text="{Binding Installed}" Foreground="{Binding ., Converter={StaticResource ColorConverter}, ConverterParameter=foreground}"   Margin="5,0,0,0"  FontSize="16"/>
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding Current}" Foreground="{Binding ., Converter={StaticResource ColorConverter}, ConverterParameter=foreground}"  Grid.Row="1" FontSize="14"  />
+                                        <TextBlock Text="{Binding Prerelease}" Foreground="{Binding ., Converter={StaticResource ColorConverter}, ConverterParameter=foreground}"  Grid.Row="1" FontSize="14" Grid.Column="1" />
+                                        <TextBlock Text="{Binding VersionCount}" Foreground="{Binding ., Converter={StaticResource ColorConverter}, ConverterParameter=foreground}"  Grid.Row="1" Grid.Column="2" FontSize="14" />
+                                    </Grid>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <TreeView ItemsSource="{Binding Path=SelectedPackage.InstalledVersions}" Background="Navy" Grid.Row="0" Grid.RowSpan="4" Grid.Column="1" >
+                        <TreeView.ItemTemplate>
+                            <HierarchicalDataTemplate>
+                                <TreeViewItem Header="{Binding Version}" Foreground="Yellow"  FontSize="24">
+                                    <TreeViewItem Header="Project Files" ItemsSource="{Binding ProjectFiles}" Foreground="Yellow" FontSize="24">
+                                        <TreeViewItem.ItemTemplate>
+                                            <HierarchicalDataTemplate >
+                                                <TreeViewItem Header="{Binding Name}" Foreground="Yellow" FontSize="24" 
+                                                    MouseLeftButtonUp="TreeViewItem_MouseLeftButtonUp_ProjectSelected" 
+                                                    MouseRightButtonUp="TreeViewItem_MouseLeftButtonUp_ProjectSelected" />
+                                            </HierarchicalDataTemplate>
+                                        </TreeViewItem.ItemTemplate>
+                                    </TreeViewItem>
+                                </TreeViewItem>
+                            </HierarchicalDataTemplate>
+                        </TreeView.ItemTemplate>
+                    </TreeView>
+
+                    <StackPanel DataContext="{Binding SelectedProject}" Grid.Column="2" Grid.Row="1" Margin="10"  >
+                        <Label Content="{Binding Path}" FontSize="24" />
+                        <Label Content="{Binding Name}" FontSize="24" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Grid.Row="2" Margin="10" Visibility="{Binding SelectedProject, Converter={StaticResource NotNullVisibilityConverter}}" >
+                        <Label Content="Versions" FontSize="24" />
+                        <ComboBox ItemsSource="{Binding Path=SelectedPackage.AllVersions}" FontSize="24" SelectedItem="{Binding Path=SelectedPackage.SelectedVersion}" Width="250" HorizontalAlignment="Left" />
+                        <StackPanel Orientation="Vertical">
+                            <CheckBox Content="Auto Commit" IsChecked="{Binding AutoCommit}" Margin="0,10,0,0" />
+                            <Button Width="120" Height="34" Content="Update" Command="{Binding UpdateNugetVersionCommand}" HorizontalAlignment="Left" Margin="0,10,0,0" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <ListView ItemsSource="{Binding GitCommitLog}" Background="Navy" Grid.Row="3" Grid.RowSpan="3" Grid.Column="2" Visibility="{Binding SelectedProject, Converter={StaticResource NotNullVisibilityConverter}}" >
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock FontSize="12" Text="{Binding Output}" FontFamily="Consolas" Foreground="{Binding LogType, Converter={StaticResource LogTypeColorCodeConverter}}" />
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+
+                    <ListView ItemsSource="{Binding ActivityLog}" Background="Navy" Grid.Row="0" Grid.RowSpan="4" Grid.ColumnSpan="2" Grid.Column="1" Visibility="{Binding IsLoading, Converter={StaticResource VisibilityConverter}}" >
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock FontSize="16" Text="{Binding .}" FontFamily="Consolas" Foreground="Yellow" />
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Unit Tests">
+                <Grid DataContext="{Binding UnitTestingViewModel}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="350"/>
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        
+                    </Grid.RowDefinitions>
+                    <ListView ItemsSource="{Binding UnitTests}" FontSize="16" Grid.RowSpan="2">
+                    </ListView>
+
+                    <ListView ItemsSource="{Binding UnitTestingActivityLog}" Background="Navy" Grid.Row="1" Grid.Column="1" Visibility="{Binding SelectedProject, Converter={StaticResource NotNullVisibilityConverter}}" >
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock FontSize="12" Text="{Binding Output}" FontFamily="Consolas" Foreground="{Binding LogType, Converter={StaticResource LogTypeColorCodeConverter}}" />
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </Grid>
             </TabItem>
         </TabControl>
         <ProgressBar  Maximum="{Binding Path=ScanMax}" Grid.Row="1" Height="20" Value="{Binding ScanProgress}" Visibility="{ Binding ScanVisibility}" Grid.ColumnSpan="3"></ProgressBar>

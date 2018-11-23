@@ -3,6 +3,7 @@ using System;
 using System.Globalization;
 using System.Windows.Data;
 using System.Windows.Media;
+using System.Linq;
 
 namespace LagoVista.GitHelper.Converters
 {
@@ -20,6 +21,30 @@ namespace LagoVista.GitHelper.Converters
                         return Brushes.Green;
                     case CurrentStatus.Untouched:
                         return Brushes.Gray;
+                }
+            }
+
+            if(value is Models.Package package)
+            {
+                if (parameter != null && parameter.ToString() == "foreground")
+                {
+                    if (package.VersionCount > 1)
+                        return Brushes.White;
+
+                    if (package.CanUpgarde)
+                        return Brushes.Black;
+
+                    return Brushes.White;
+                }
+                else
+                {
+                    if (package.VersionCount > 1)
+                        return Brushes.Crimson;
+
+                    if (package.CanUpgarde)
+                        return Brushes.Gold;
+
+                    return Brushes.Green;
                 }
             }
 

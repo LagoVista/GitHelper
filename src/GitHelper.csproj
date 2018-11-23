@@ -78,6 +78,8 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Models\UnitTest.cs" />
+    <Compile Include="UnitTesting\UnitTestingViewModel.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -98,6 +100,8 @@
     <Compile Include="ConsoleWriter.cs" />
     <Compile Include="Converters\EmptyListVisibilityConverter.cs" />
     <Compile Include="Converters\LogTypeColorCodeConverter.cs" />
+    <Compile Include="Converters\VisibilityConverter.cs" />
+    <Compile Include="Dependencies\DependencyManager.cs" />
     <Compile Include="GitManagedFile.cs" />
     <Compile Include="GitManagedFolder.cs" />
     <Compile Include="MainViewModel.cs" />
@@ -108,6 +112,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Converters\NotNullVisibilityConverter.cs" />
+    <Compile Include="Models\NugetJSON.cs" />
+    <Compile Include="Models\Package.cs" />
+    <Compile Include="Models\PackageVersion.cs" />
+    <Compile Include="Models\ProjectFile.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -156,6 +164,7 @@
       <Install>false</Install>
     </BootstrapperPackage>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions />
 </Project>

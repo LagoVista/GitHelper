@@ -65,6 +65,27 @@ namespace LagoVista.GitHelper
             _vm.CurrentFolder = fileStatus.Folder;
         }
 
+        private void TreeViewItem_MouseLeftButtonUp_ProjectSelected(object sender, MouseButtonEventArgs e)
+        {
+            e.Handled = true;
+
+            if(_vm.IsBusy)
+            {
+                return;
+            }
+
+            if (_previousTreeItem != null)
+            {
+                _previousTreeItem.IsSelected = false;
+            }
+
+            var treeViewItem = sender as TreeViewItem;
+            treeViewItem.IsSelected = true;
+            _previousTreeItem = treeViewItem;
+
+            _vm.DependencyManager.SelectedProject = treeViewItem.DataContext as Models.ProjectFile;
+        }
+
         private void TreeViewItem_MouseLeftButtonUp_StagedFiles(object sender, MouseButtonEventArgs e)
         {
             e.Handled = true;

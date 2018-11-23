@@ -25,12 +25,11 @@ namespace GitHelper.Build
         private NugetUtils _nugetUtils;
 
 
-        Dispatcher _dispatcher;
-
-        public event PropertyChangedEventHandler PropertyChanged;
+        Dispatcher _dispatcher;        
 
         private bool _isCancelled;
 
+        public event PropertyChangedEventHandler PropertyChanged;
         private void NotifyChanged(string propertyName)
         {
             _dispatcher.BeginInvoke(DispatcherPriority.Normal, (Action)delegate

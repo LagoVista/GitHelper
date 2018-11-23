@@ -1,6 +1,5 @@
 ﻿using GitHelper.Build;
 using LagoVista.Core.Commanding;
-using LagoVista.GitHelper.Properties;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -21,6 +20,9 @@ namespace LagoVista.GitHelper
         ConsoleWriter _consoleWriter;
         ConsoleWriter _buildConsoleWriter;
         String _rootPath;
+
+
+        Dependencies.DependencyManager _dependencyManager;
 
         public MainViewModel(Dispatcher dispatcher)
         {
@@ -46,6 +48,9 @@ namespace LagoVista.GitHelper
 
 
             IsReady = true;
+            _dependencyManager = new Dependencies.DependencyManager(_rootPath,  _dispatcher);
+
+            UnitTestingViewModel = new UnitTesting.UnitTestingViewModel(_rootPath, _dispatcher);
 
         }
 
@@ -119,11 +124,13 @@ namespace LagoVista.GitHelper
                         _fileWatchers.Add(fileWatcher);
                     }
                 });
+
+
                 _dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, (Action)delegate
                 {
                     Folders = new ObservableCollection<GitManagedFolder>(folders.OrderBy(f => f.Label));
                 });
-                
+
                 //foreach (var dir in dirs)
                 //{
                 //    _dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, (Action)delegate
@@ -248,11 +255,16 @@ namespace LagoVista.GitHelper
         private void HandleFileUpdated(string directoryName, string fullFileName, string changeType)
         {
             /* If we are in a build or other operation, ignore any updates files, will do a scan afterwards */
-            if (IsBusy) return;
+            if (IsBusy)
+            {
+                return;
+            }
 
             var extension = Path.GetExtension(fullFileName).ToLower();
-            if (ShouldIgnore(directoryName, fullFileName, changeType)) return;
-
+            if (ShouldIgnore(directoryName, fullFileName, changeType))
+            {
+                return;
+            }
 
             var folder = Folders.Where(fld => fld.Path == directoryName).FirstOrDefault();
             if (folder != null)
@@ -260,9 +272,21 @@ namespace LagoVista.GitHelper
                 var added = false;
 
                 var file = folder.NotStaged.Where(fil => fil.FullPath == fullFileName).FirstOrDefault();
-                if (file == null) file = folder.Untracked.Where(fil => fil.FullPath == fullFileName).FirstOrDefault();
-                if (file == null) file = folder.Conflicted.Where(fil => fil.FullPath == fullFileName).FirstOrDefault();
-                if (file == null) file = folder.Staged.Where(fil => fil.FullPath == fullFileName).FirstOrDefault();
+                if (file == null)
+                {
+                    file = folder.Untracked.Where(fil => fil.FullPath == fullFileName).FirstOrDefault();
+                }
+
+                if (file == null)
+                {
+                    file = folder.Conflicted.Where(fil => fil.FullPath == fullFileName).FirstOrDefault();
+                }
+
+                if (file == null)
+                {
+                    file = folder.Staged.Where(fil => fil.FullPath == fullFileName).FirstOrDefault();
+                }
+
                 if (file == null)
                 {
                     file = new GitManagedFile(this._dispatcher, folder)
@@ -314,14 +338,22 @@ namespace LagoVista.GitHelper
                         switch (file.State)
                         {
                             case GitFileState.Untracked:
-                                if (!folder.Untracked.Where(fil => fil.Label == file.Label).Any()) folder.Untracked.Add(file);
+                                if (!folder.Untracked.Where(fil => fil.Label == file.Label).Any())
+                                {
+                                    folder.Untracked.Add(file);
+                                }
+
                                 break;
                             case GitFileState.Staged:
                                 break;
                             case GitFileState.Conflicted:
                                 break;
                             case GitFileState.NotStaged:
-                                if (folder.NotStaged != null && !folder.NotStaged.Where(fil => fil.Label == file.Label).Any()) folder.Untracked.Add(file);
+                                if (folder.NotStaged != null && !folder.NotStaged.Where(fil => fil.Label == file.Label).Any())
+                                {
+                                    folder.Untracked.Add(file);
+                                }
+
                                 break;
                         }
                     }
@@ -336,22 +368,25 @@ namespace LagoVista.GitHelper
 
         private void WasRemoved(string directoryName, string fullFileName)
         {
-            var folder = Folders.Where(fld => fld.Path == directoryName).FirstOrDefault();
-            if (folder != null)
+            if (Folders != null)
             {
-                _dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, (Action)delegate
+                var folder = Folders.Where(fld => fld.Path == directoryName).FirstOrDefault();
+                if (folder != null)
                 {
-                    if (folder.Untracked != null)
+                    _dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, (Action)delegate
                     {
-                        var file = folder.Untracked.Where(fil => fil.FullPath == fullFileName).FirstOrDefault();
-                        if (file != null)
+                        if (folder.Untracked != null)
                         {
-                            folder.Untracked.Remove(file);
+                            var file = folder.Untracked.Where(fil => fil.FullPath == fullFileName).FirstOrDefault();
+                            if (file != null)
+                            {
+                                folder.Untracked.Remove(file);
+                            }
+                            folder.UntrackedFileStatus = folder.Untracked.Where(utf => utf.IsDirty).Any() ? CurrentStatus.Dirty : CurrentStatus.Untouched;
                         }
-                        folder.UntrackedFileStatus = folder.Untracked.Where(utf => utf.IsDirty).Any() ? CurrentStatus.Dirty : CurrentStatus.Untouched;
-                    }
-                    folder.IsDirty = folder.NotStagedFileStatus == CurrentStatus.Dirty || folder.ConflictFileStatus == CurrentStatus.Dirty || folder.UntrackedFileStatus == CurrentStatus.Dirty;
-                });
+                        folder.IsDirty = folder.NotStagedFileStatus == CurrentStatus.Dirty || folder.ConflictFileStatus == CurrentStatus.Dirty || folder.UntrackedFileStatus == CurrentStatus.Dirty;
+                    });
+                }
             }
         }
 
@@ -590,6 +625,10 @@ namespace LagoVista.GitHelper
             }
         }
 
+        public UnitTesting.UnitTestingViewModel UnitTestingViewModel { get; private set; }
+
+
+        public Dependencies.DependencyManager DependencyManager { get { return _dependencyManager; } }
 
         public ObservableCollection<ConsoleOutput> ConsoleLogOutput { get; } = new ObservableCollection<ConsoleOutput>();
 
