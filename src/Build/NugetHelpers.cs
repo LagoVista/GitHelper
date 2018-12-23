@@ -225,6 +225,44 @@ namespace GitHelper.Build
             }
         }
 
+        public InvokeResult<string> RemoveFromCSProj(string fileName, string packageName)
+        {
+            try
+            {
+                var result = _fileHelper.OpenFile(fileName);
+                if (!result.Successful)
+                {
+                    return InvokeResult<string>.FromInvokeResult(result.ToInvokeResult());
+                }
+
+                var fileContents = result.Result;
+
+                /* if they are passed in selectively update packages based on name, we are doing a partial build so only update the ones that got/or will get build */
+                string NUGETVERSION1 = @"<PackageReference\s+Include\s*=\s*""" + packageName + @"""\s+Version\s*=\s*""(?'version'[\w\.-]*)""\s+\/>";
+                var nugetRegEx = new Regex(NUGETVERSION1);
+                var matches = nugetRegEx.Matches(fileContents);
+                if (matches.Count > 1)
+                {
+                    return InvokeResult<string>.FromError($"Found multiple matches for package [{packageName}]");
+                }
+                else if (matches.Count == 0)
+                {
+                    return InvokeResult<string>.FromError($"Could not find match for [{packageName}]");
+                }
+                
+
+                fileContents = nugetRegEx.Replace(fileContents, String.Empty);
+                _fileHelper.WriteFile(fileName, fileContents);
+
+                return InvokeResult<string>.Create($"Removed {packageName} from {fileName}");
+            }
+            catch (Exception ex)
+            {
+                _consoleWriter.AddMessage(LogType.Error, $"Exception: {ex.Message} - Apply Nuget Version to Project: {fileName} ");
+                return InvokeResult<string>.FromException("NugetHelpers_ApplyToCSProject", ex);
+            }
+        }
+
         public InvokeResult<List<Package>> GetAllPackages(string csProjFileName)
         {
             var packages = new List<Package>();

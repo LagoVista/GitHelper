@@ -2,7 +2,6 @@
 using LagoVista.Core.Commanding;
 using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -57,12 +56,14 @@ namespace LagoVista.GitHelper.Dependencies
 
             RefreshCommand = new RelayCommand(async (obj) => await PopulateDependencyTreeAsync(obj), CanRefresh);
             UpdateNugetVersionCommand = new RelayCommand(UpdateVersion, CanUpdateNuget);
+            RemoveNugetCommand = new RelayCommand(RemoveNuget, CanUpdateNuget);
         }
 
         public bool CanUpdateNuget(Object obj)
         {
             return !IsUpdatingNuget;
         }
+
 
         public bool CanRefresh(Object obj)
         {
@@ -80,7 +81,7 @@ namespace LagoVista.GitHelper.Dependencies
                 {
                     PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
                 });
-            }         
+            }
         }
 
         ObservableCollection<SolutionInformation> _solutionFiles;
@@ -101,7 +102,7 @@ namespace LagoVista.GitHelper.Dependencies
             NotifyChanged(nameof(Packages));
 
             IsLoading = true;
-            
+
             SelectedPackage = null;
             SelectedProject = null;
 
@@ -130,7 +131,7 @@ namespace LagoVista.GitHelper.Dependencies
                                     existingVersion.ProjectFiles.Add(new Models.ProjectFile()
                                     {
                                         FullPath = proj,
-                                        Version = existingVersion.Version                                        
+                                        Version = existingVersion.Version
                                     });
                                 }
                                 else
@@ -165,7 +166,7 @@ namespace LagoVista.GitHelper.Dependencies
                                         {
                                             package.AddVersion(new Models.PackageVersion()
                                             {
-                                                 Version = version.Version
+                                                Version = version.Version
                                             });
                                         }
                                     }
@@ -192,11 +193,81 @@ namespace LagoVista.GitHelper.Dependencies
         }
         #endregion
 
+        public void RemoveNuget(Object obj)
+        {
+            if (SelectedProject != null && SelectedPackage != null)
+            {
+                IsUpdatingNuget = true;
+                var oldVersion = SelectedProject.Version;
+
+                _consoleWriter.Flush(true);
+                _consoleWriter.AddMessage(LogType.Message, $"Removing {SelectedPackage.Name} from {SelectedProject.Name}");
+                _consoleWriter.Flush();
+
+                var result = _nugetHelpers.RemoveFromCSProj(SelectedProject.FullPath, SelectedPackage.Name);
+                if (result.Successful)
+                {
+                    _consoleWriter.AddMessage(LogType.Error, "$Success Removed {SelectedPackage.Name} from {SelectedProject.Name}.");
+
+                    if (AutoCommit)
+                    {
+                        Task.Run(() =>
+                        {
+                            var path = SelectedProject.Path;
+                            var commitMessage = result.Result;
+
+                            RunProcess("git.exe", path, $"add .", "adding files", checkRemote: false);
+                            RunProcess("git.exe", path, $"commit -m \"{commitMessage}\"", "committing files", checkRemote: false);
+                            RunProcess("git.exe", path, $"push", "Pushing Files", checkRemote: false);
+                            _dispatcher.BeginInvoke(DispatcherPriority.Normal, (Action)delegate
+                            {
+                                IsUpdatingNuget = false;
+                                var oldPackageVersion = SelectedPackage.InstalledVersions.Where(ver => ver.Version == oldVersion).FirstOrDefault();
+                                if (oldPackageVersion != null)
+                                {
+                                    oldPackageVersion.ProjectFiles.Remove(SelectedProject);
+                                }
+
+                                if (!oldPackageVersion.ProjectFiles.Any())
+                                {
+                                    SelectedPackage.InstalledVersions.Remove(oldPackageVersion);
+                                }
+
+                                NotifyChanged(nameof(SelectedPackage));
+                                NotifyChanged(nameof(Packages));
+                            });
+                        });
+                    }
+                    else
+                    {
+                        var oldPackageVersion = SelectedPackage.InstalledVersions.Where(ver => ver.Version == oldVersion).FirstOrDefault();
+                        if (oldPackageVersion != null)
+                        {
+                            oldPackageVersion.ProjectFiles.Remove(SelectedProject);
+                        }
+
+                        if (!oldPackageVersion.ProjectFiles.Any())
+                        {
+                            SelectedPackage.InstalledVersions.Remove(oldPackageVersion);
+                        }
+
+                        NotifyChanged(nameof(SelectedPackage));
+                        NotifyChanged(nameof(Packages));
+                    }
+                }
+                else
+                {
+                    _consoleWriter.AddMessage(LogType.Error, $"Failed to remove {SelectedPackage.Name} from {SelectedProject.Name}.");
+                    _consoleWriter.AddMessage(LogType.Error, result.Errors.First().Message);
+                    _consoleWriter.Flush();
+                    IsUpdatingNuget = false;
+                }
+            }
+        }
+
         public void UpdateVersion(Object obj)
         {
-            
-
-            if(SelectedProject != null && SelectedPackage != null)
+            if (SelectedProject != null && SelectedPackage != null)
             {
                 IsUpdatingNuget = true;
                 var oldVersion = SelectedProject.Version;
@@ -205,7 +276,7 @@ namespace LagoVista.GitHelper.Dependencies
                 _consoleWriter.AddMessage(LogType.Message, $"Updating {SelectedPackage.Name} on {SelectedProject.Name} to {SelectedPackage.SelectedVersion.Version}");
                 _consoleWriter.Flush();
 
-                var result = _nugetHelpers.ApplyToCSProject(SelectedProject.FullPath, SelectedPackage.SelectedVersion.Version, SelectedPackage.Name );
+                var result = _nugetHelpers.ApplyToCSProject(SelectedProject.FullPath, SelectedPackage.SelectedVersion.Version, SelectedPackage.Name);
                 if (result.Successful)
                 {
                     _consoleWriter.AddMessage(LogType.Message, $"Success Updating {SelectedPackage.Name} on {SelectedProject.Name} to {SelectedPackage.SelectedVersion.Version}");
@@ -273,10 +344,10 @@ namespace LagoVista.GitHelper.Dependencies
                 else
                 {
                     _consoleWriter.AddMessage(LogType.Error, $"Failed Updating {SelectedPackage.Name} on {SelectedProject.Name} to {SelectedPackage.SelectedVersion.Version}");
-                    _consoleWriter.AddMessage(LogType.Error,result.Errors.First().Message);
+                    _consoleWriter.AddMessage(LogType.Error, result.Errors.First().Message);
                     _consoleWriter.Flush();
                     IsUpdatingNuget = false;
-                }                
+                }
             }
         }
 
@@ -329,7 +400,7 @@ namespace LagoVista.GitHelper.Dependencies
 
 
         #region Properties
-        
+
         private bool _autoCommit = true;
         public bool AutoCommit
         {
@@ -535,6 +606,8 @@ namespace LagoVista.GitHelper.Dependencies
 
         public RelayCommand RefreshCommand { get; private set; }
         public RelayCommand UpdateNugetVersionCommand { get; private set; }
+
+        public RelayCommand RemoveNugetCommand { get; private set; }
         #endregion
     }
 }
