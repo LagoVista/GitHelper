@@ -265,89 +265,108 @@ namespace LagoVista.GitHelper.Dependencies
             }
         }
 
-        public void UpdateVersion(Object obj)
+        private void UpdatePackage(Models.ProjectFile selectedProject)
         {
-            if (SelectedProject != null && SelectedPackage != null)
+            IsUpdatingNuget = true;
+            var oldVersion = selectedProject.Version;
+
+            _consoleWriter.Flush(true);
+            _consoleWriter.AddMessage(LogType.Message, $"Updating {SelectedPackage.Name} on {selectedProject.Name} to {SelectedPackage.SelectedVersion.Version}");
+            _consoleWriter.Flush();
+
+            var result = _nugetHelpers.ApplyToCSProject(selectedProject.FullPath, SelectedPackage.SelectedVersion.Version, SelectedPackage.Name);
+            if (result.Successful)
             {
-                IsUpdatingNuget = true;
-                var oldVersion = SelectedProject.Version;
-
-                _consoleWriter.Flush(true);
-                _consoleWriter.AddMessage(LogType.Message, $"Updating {SelectedPackage.Name} on {SelectedProject.Name} to {SelectedPackage.SelectedVersion.Version}");
+                _consoleWriter.AddMessage(LogType.Message, $"Success Updating {SelectedPackage.Name} on {selectedProject.Name} to {SelectedPackage.SelectedVersion.Version}");
                 _consoleWriter.Flush();
+                var path = selectedProject.Path;
+                var commitMessage = result.Result;
 
-                var result = _nugetHelpers.ApplyToCSProject(SelectedProject.FullPath, SelectedPackage.SelectedVersion.Version, SelectedPackage.Name);
-                if (result.Successful)
+                if (AutoCommit)
                 {
-                    _consoleWriter.AddMessage(LogType.Message, $"Success Updating {SelectedPackage.Name} on {SelectedProject.Name} to {SelectedPackage.SelectedVersion.Version}");
-                    _consoleWriter.Flush();
-                    var path = SelectedProject.Path;
-                    var commitMessage = result.Result;
-
-                    if (AutoCommit)
+                    Task.Run(() =>
                     {
-                        Task.Run(() =>
+                        RunProcess("git.exe", path, $"add .", "adding files", checkRemote: false);
+                        RunProcess("git.exe", path, $"commit -m \"{commitMessage}\"", "committing files", checkRemote: false);
+                        RunProcess("git.exe", path, $"push", "Pushing Files", checkRemote: false);
+                        _dispatcher.BeginInvoke(DispatcherPriority.Normal, (Action)delegate
                         {
-                            RunProcess("git.exe", path, $"add .", "adding files", checkRemote: false);
-                            RunProcess("git.exe", path, $"commit -m \"{commitMessage}\"", "committing files", checkRemote: false);
-                            RunProcess("git.exe", path, $"push", "Pushing Files", checkRemote: false);
-                            _dispatcher.BeginInvoke(DispatcherPriority.Normal, (Action)delegate
+                            IsUpdatingNuget = false;
+                            var oldPackageVersion = SelectedPackage.InstalledVersions.Where(ver => ver.Version == oldVersion).FirstOrDefault();
+                            if (oldPackageVersion != null)
                             {
-                                IsUpdatingNuget = false;
-                                var oldPackageVersion = SelectedPackage.InstalledVersions.Where(ver => ver.Version == oldVersion).FirstOrDefault();
-                                if (oldPackageVersion != null)
-                                {
-                                    oldPackageVersion.ProjectFiles.Remove(SelectedProject);
-                                }
+                                oldPackageVersion.ProjectFiles.Remove(selectedProject);
+                            }
 
-                                if (!oldPackageVersion.ProjectFiles.Any())
-                                {
-                                    SelectedPackage.InstalledVersions.Remove(oldPackageVersion);
-                                }
+                            if (!oldPackageVersion.ProjectFiles.Any())
+                            {
+                                SelectedPackage.InstalledVersions.Remove(oldPackageVersion);
+                            }
 
-                                var newPackageVersion = SelectedPackage.InstalledVersions.Where(ver => ver.Version == SelectedPackage.SelectedVersion.Version).FirstOrDefault();
-                                if (newPackageVersion != null)
-                                {
-                                    newPackageVersion.ProjectFiles.Add(SelectedProject);
-                                }
+                            var newPackageVersion = SelectedPackage.InstalledVersions.Where(ver => ver.Version == SelectedPackage.SelectedVersion.Version).FirstOrDefault();
+                            if (newPackageVersion != null)
+                            {
+                                newPackageVersion.ProjectFiles.Add(selectedProject);
+                            }
 
-                                NotifyChanged(nameof(SelectedPackage));
-                                NotifyChanged(nameof(Packages));
-                            });
+                            NotifyChanged(nameof(SelectedPackage));
+                            NotifyChanged(nameof(Packages));
                         });
-                    }
-                    else
-                    {
-
-                        var oldPackageVersion = SelectedPackage.InstalledVersions.Where(ver => ver.Version == oldVersion).FirstOrDefault();
-                        if (oldPackageVersion != null)
-                        {
-                            oldPackageVersion.ProjectFiles.Remove(SelectedProject);
-                        }
-
-                        if (!oldPackageVersion.ProjectFiles.Any())
-                        {
-                            SelectedPackage.InstalledVersions.Remove(oldPackageVersion);
-                        }
-
-                        var newPackageVersion = SelectedPackage.InstalledVersions.Where(ver => ver.Version == SelectedPackage.SelectedVersion.Version).FirstOrDefault();
-                        if (newPackageVersion != null)
-                        {
-                            newPackageVersion.ProjectFiles.Add(SelectedProject);
-                        }
-
-                        NotifyChanged(nameof(SelectedPackage));
-                        NotifyChanged(nameof(Packages));
-                    }
-
+                    });
                 }
                 else
                 {
-                    _consoleWriter.AddMessage(LogType.Error, $"Failed Updating {SelectedPackage.Name} on {SelectedProject.Name} to {SelectedPackage.SelectedVersion.Version}");
-                    _consoleWriter.AddMessage(LogType.Error, result.Errors.First().Message);
-                    _consoleWriter.Flush();
-                    IsUpdatingNuget = false;
+
+                    var oldPackageVersion = SelectedPackage.InstalledVersions.Where(ver => ver.Version == oldVersion).FirstOrDefault();
+                    if (oldPackageVersion != null)
+                    {
+                        oldPackageVersion.ProjectFiles.Remove(selectedProject);
+                    }
+
+                    if (!oldPackageVersion.ProjectFiles.Any())
+                    {
+                        SelectedPackage.InstalledVersions.Remove(oldPackageVersion);
+                    }
+
+                    var newPackageVersion = SelectedPackage.InstalledVersions.Where(ver => ver.Version == SelectedPackage.SelectedVersion.Version).FirstOrDefault();
+                    if (newPackageVersion != null)
+                    {
+                        newPackageVersion.ProjectFiles.Add(selectedProject);
+                    }
+
+                    NotifyChanged(nameof(SelectedPackage));
+                    NotifyChanged(nameof(Packages));
                 }
+
+            }
+            else
+            {
+                _consoleWriter.AddMessage(LogType.Error, $"Failed Updating {SelectedPackage.Name} on {selectedProject.Name} to {SelectedPackage.SelectedVersion.Version}");
+                _consoleWriter.AddMessage(LogType.Error, result.Errors.First().Message);
+                _consoleWriter.Flush();
+                IsUpdatingNuget = false;
+            }
+        }
+
+        public void UpdateVersion(Object obj)
+        {
+            if (SelectedPackage != null)
+            {
+                if(UpdateAll)
+                {
+                    var installedProjects = SelectedPackage.InstalledVersions.Select(pr => pr.ProjectFiles);
+
+                    foreach (var project in installedProjects) 
+                    {
+                        foreach(var prj in project)
+                            UpdatePackage(prj);
+                    }
+                }
+                else
+                {
+                    UpdatePackage(SelectedProject);
+                }
+
             }
         }
 
@@ -409,6 +428,17 @@ namespace LagoVista.GitHelper.Dependencies
             {
                 _autoCommit = value;
                 NotifyChanged(nameof(AutoCommit));
+            }
+        }
+
+        private bool _updateAll = false;
+        public bool UpdateAll
+        {
+            get { return _updateAll; }
+            set
+            {
+                _updateAll = value;
+                NotifyChanged(nameof(UpdateAll));
             }
         }
 

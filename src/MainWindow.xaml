@@ -444,7 +444,7 @@
                                     <TreeViewItem Header="Project Files" ItemsSource="{Binding ProjectFiles}" Foreground="Yellow" FontSize="24">
                                         <TreeViewItem.ItemTemplate>
                                             <HierarchicalDataTemplate >
-                                                <TreeViewItem Header="{Binding Name}" Foreground="Yellow" FontSize="24" 
+                                                <TreeViewItem Header="{Binding Name}" Foreground="Yellow" FontSize="24"  
                                                     MouseLeftButtonUp="TreeViewItem_MouseLeftButtonUp_ProjectSelected" 
                                                     MouseRightButtonUp="TreeViewItem_MouseLeftButtonUp_ProjectSelected" />
                                             </HierarchicalDataTemplate>
@@ -460,10 +460,12 @@
                         <Label Content="{Binding Name}" FontSize="24" />
                     </StackPanel>
 
-                    <StackPanel Grid.Column="2" Grid.Row="2" Margin="10" Visibility="{Binding SelectedProject, Converter={StaticResource NotNullVisibilityConverter}}" >
+                    <StackPanel Grid.Column="2" Grid.Row="2" Margin="10" Visibility="{Binding SelectedPackage, Converter={StaticResource NotNullVisibilityConverter}}" >
                         <Label Content="Versions" FontSize="24" />
                         <ComboBox ItemsSource="{Binding Path=SelectedPackage.AllVersions}" FontSize="24" SelectedItem="{Binding Path=SelectedPackage.SelectedVersion}" Width="250" HorizontalAlignment="Left" />
+                        
                         <StackPanel Orientation="Vertical">
+                            <CheckBox Content="Update All" IsChecked="{Binding UpdateAll}" Margin="0,10,0,0" />
                             <CheckBox Content="Auto Commit" IsChecked="{Binding AutoCommit}" Margin="0,10,0,0" />
                             <StackPanel>
                                 <Button Width="120" Height="34" Content="Update" Command="{Binding UpdateNugetVersionCommand}" HorizontalAlignment="Left" Margin="0,10,0,0" />
