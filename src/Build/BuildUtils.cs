@@ -18,7 +18,7 @@ namespace GitHelper.Build
         public InvokeResult Build(string rootPath, SolutionInformation solution, string configuration)
         {
             var solutionPath = Path.Combine(rootPath, solution.LocalPath);
-            var solutionFile = $"\"{Path.Combine(rootPath, solution.LocalPath, solution.Solution)}\"";
+            var solutionFile = Path.Combine(rootPath, solution.LocalPath, solution.Solution);
 
             var proc = new Process
             {
@@ -27,7 +27,7 @@ namespace GitHelper.Build
                     FileName = "dotnet",
                     Arguments = $"build \"{solutionFile}\" -v m --no-incremental -c {configuration}",
                     UseShellExecute = false,
-                    WorkingDirectory = solutionPath,
+                    WorkingDirectory = $"\"{solutionPath}\"",
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     CreateNoWindow = true
