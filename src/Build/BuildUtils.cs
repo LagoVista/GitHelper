@@ -27,7 +27,7 @@ namespace GitHelper.Build
                     FileName = "dotnet",
                     Arguments = $"build \"{solutionFile}\" -v m --no-incremental -c {configuration}",
                     UseShellExecute = false,
-                    WorkingDirectory = $"\"{solutionPath}\"",
+                    WorkingDirectory = solutionPath,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     CreateNoWindow = true
