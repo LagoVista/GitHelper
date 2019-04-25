@@ -6,12 +6,10 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
-using LagoVista.Core;
-using System.Windows.Threading;
-using System.Windows;
 using System.Text.RegularExpressions;
-using LagoVista.Core.Validation;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Threading;
 
 namespace LagoVista.GitHelper
 {
@@ -27,11 +25,11 @@ namespace LagoVista.GitHelper
     {
         public event PropertyChangedEventHandler PropertyChanged;
         private ConsoleWriter _consoleWriter;
-        Dispatcher _dispatcher;
+        private Dispatcher _dispatcher;
 
         public event EventHandler<bool> IsBusyEvent;
 
-        enum GitStatusParsingState
+        private enum GitStatusParsingState
         {
             Idle,
             Untracked,
@@ -60,9 +58,12 @@ namespace LagoVista.GitHelper
             UndoChangesCommand = new RelayCommand(UndoChanges, CanUndoChanges);
             CleanUntrackedCommand = new RelayCommand(CleanChanges, CanCleanUntracked);
             HardResetCommand = new RelayCommand(HardReset, CanHardReset);
+            ForcePullCommand = new RelayCommand(ForcePull, CanForcePull);
             MergeCommand = new RelayCommand(Merge);
             DeleteFileCommand = new RelayCommand(DeleteFile);
         }
+
+
 
         private void NotifyChanged(string propertyName)
         {
@@ -87,17 +88,22 @@ namespace LagoVista.GitHelper
             return !IsBusy;
         }
 
+        private bool CanForcePull()
+        {
+            return CanPullFiles() && CanPullFiles();
+        }
+
         public bool CanStashFiles()
         {
             return NotStaged.Any() && !IsBusy;
         }
 
-        public bool CanUnstageFile(Object obj)
+        public bool CanUnstageFile(object obj)
         {
             return !IsBusy;
         }
 
-        public bool CanUndoChanges(Object obj)
+        public bool CanUndoChanges(object obj)
         {
             return !IsBusy;
         }
@@ -138,6 +144,7 @@ namespace LagoVista.GitHelper
             StashAllFilesCommand.RaiseCanExecuteChanged();
             StashTempFilesCommand.RaiseCanExecuteChanged();
             HardResetCommand.RaiseCanExecuteChanged();
+            ForcePullCommand.RaiseCanExecuteChanged();
         }
 
         #region Command Handlers
@@ -173,7 +180,7 @@ namespace LagoVista.GitHelper
             });
         }
 
-        public void AddFile(Object obj)
+        public void AddFile(object obj)
         {
             if (obj is GitManagedFile file)
             {
@@ -185,7 +192,7 @@ namespace LagoVista.GitHelper
             }
         }
 
-        public void UnStageFile(Object obj)
+        public void UnStageFile(object obj)
         {
             if (obj is GitManagedFile file)
             {
@@ -197,7 +204,7 @@ namespace LagoVista.GitHelper
             }
         }
 
-        public void UndoChanges(Object obj)
+        public void UndoChanges(object obj)
         {
             if (obj is GitManagedFile file)
             {
@@ -209,7 +216,7 @@ namespace LagoVista.GitHelper
             }
         }
 
-        public void DeleteFile(Object obj)
+        public void DeleteFile(object obj)
         {
             if (obj is GitManagedFile file)
             {
@@ -222,7 +229,7 @@ namespace LagoVista.GitHelper
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show($"Error deleting file: {ex.Message}" );
+                        MessageBox.Show($"Error deleting file: {ex.Message}");
                         _consoleWriter.AddMessage(LogType.Error, $"Error deleting file: {ex.Message}");
                         return;
                     }
@@ -233,7 +240,7 @@ namespace LagoVista.GitHelper
             }
         }
 
-        public void Merge(Object obj)
+        public void Merge(object obj)
         {
             if (obj is GitManagedFile file)
             {
@@ -390,6 +397,20 @@ namespace LagoVista.GitHelper
             }
         }
 
+        public async void ForcePull()
+        {
+            if (MessageBox.Show("Are you absolutely sure, this can not be undone and you may lose work, both untracked, not staged and commited files will be removed.", "Confirm", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+            {
+                IsBusy = true;
+                await Task.Run(() =>
+                {
+                    RunProcess("git.exe", "reset --hard", "reset hard.", true, checkRemote: false);
+                    RunProcess("git.exe", $"pull", "pulling files");
+                    Scan(false, checkRemote: false);
+                });
+            }
+        }
+
         public void HardReset()
         {
             if (MessageBox.Show("Are you absolutely sure, this can not be undone and you may lose work, both untracked, not staged and commited files will be removed.", "Confirm", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
@@ -419,7 +440,7 @@ namespace LagoVista.GitHelper
         private string _commitMessage;
         public string CommitMessage
         {
-            get { return _commitMessage; }
+            get => _commitMessage;
             set
             {
                 _commitMessage = value;
@@ -431,10 +452,10 @@ namespace LagoVista.GitHelper
 
         public CurrentStatus CurrentStatus { get; private set; } = CurrentStatus.Untouched;
 
-        CurrentStatus _notStagedFileStatus = CurrentStatus.Untouched;
+        private CurrentStatus _notStagedFileStatus = CurrentStatus.Untouched;
         public CurrentStatus NotStagedFileStatus
         {
-            get { return _notStagedFileStatus; }
+            get => _notStagedFileStatus;
             set
             {
                 _notStagedFileStatus = value;
@@ -442,10 +463,10 @@ namespace LagoVista.GitHelper
             }
         }
 
-        CurrentStatus _conflictFileStatus = CurrentStatus.Untouched;
+        private CurrentStatus _conflictFileStatus = CurrentStatus.Untouched;
         public CurrentStatus ConflictFileStatus
         {
-            get { return _conflictFileStatus; }
+            get => _conflictFileStatus;
             set
             {
                 _conflictFileStatus = value;
@@ -453,10 +474,10 @@ namespace LagoVista.GitHelper
             }
         }
 
-        CurrentStatus _untrackedFileStatus = CurrentStatus.Untouched;
+        private CurrentStatus _untrackedFileStatus = CurrentStatus.Untouched;
         public CurrentStatus UntrackedFileStatus
         {
-            get { return _untrackedFileStatus; }
+            get => _untrackedFileStatus;
             set
             {
                 _untrackedFileStatus = value;
@@ -464,10 +485,10 @@ namespace LagoVista.GitHelper
             }
         }
 
-        CurrentStatus _stagedFileStatus = CurrentStatus.Untouched;
+        private CurrentStatus _stagedFileStatus = CurrentStatus.Untouched;
         public CurrentStatus StagedFileStatus
         {
-            get { return _stagedFileStatus; }
+            get => _stagedFileStatus;
             set
             {
                 _stagedFileStatus = value;
@@ -475,10 +496,10 @@ namespace LagoVista.GitHelper
             }
         }
 
-        CurrentStatus _stashedFiles = CurrentStatus.Untouched;
+        private CurrentStatus _stashedFiles = CurrentStatus.Untouched;
         public CurrentStatus StashedFileStatus
         {
-            get { return _stashedFiles; }
+            get => _stashedFiles;
             set
             {
                 _stashedFiles = value;
@@ -490,14 +511,11 @@ namespace LagoVista.GitHelper
         private string _label;
         public string Label
         {
-            get
-            {
-                return String.IsNullOrEmpty(_label)
+            get => String.IsNullOrEmpty(_label)
                     ? _label
                     : BehindOriginCount > 0 || UnpushedCommitCount > 0
                     ? $"{_label} ({BehindOriginCount}/{UnpushedCommitCount}) "
                     : _label;
-            }
             set
             {
                 _label = value;
@@ -509,7 +527,7 @@ namespace LagoVista.GitHelper
         private bool _isDirty = false;
         public bool IsDirty
         {
-            get { return _isDirty; }
+            get => _isDirty;
             set
             {
                 _isDirty = value;
@@ -522,19 +540,23 @@ namespace LagoVista.GitHelper
         private bool _isBehindOrigin = false;
         public bool IsBehindOrigin
         {
-            get { return _isBehindOrigin; }
+            get => _isBehindOrigin;
             set
             {
                 _isBehindOrigin = value;
                 NotifyChanged(nameof(IsBehindOrigin));
-                _dispatcher.BeginInvoke(DispatcherPriority.Normal, (Action)delegate { PullCommand.RaiseCanExecuteChanged(); });
+                _dispatcher.BeginInvoke(DispatcherPriority.Normal, (Action)delegate
+                {
+                    PullCommand.RaiseCanExecuteChanged();
+                    ForcePullCommand.RaiseCanExecuteChanged();
+                });
             }
         }
 
         private bool _hasUnpushedCommits = false;
         public bool HasUnpushedCommits
         {
-            get { return _hasUnpushedCommits; }
+            get => _hasUnpushedCommits;
             set
             {
                 _hasUnpushedCommits = value;
@@ -547,7 +569,7 @@ namespace LagoVista.GitHelper
         private int _BehindOriginCount = 0;
         public int BehindOriginCount
         {
-            get { return _BehindOriginCount; }
+            get => _BehindOriginCount;
             set
             {
                 _BehindOriginCount = value;
@@ -558,7 +580,7 @@ namespace LagoVista.GitHelper
         private int _unpushedCount = 0;
         public int UnpushedCommitCount
         {
-            get { return _unpushedCount; }
+            get => _unpushedCount;
             set
             {
                 _unpushedCount = value;
@@ -566,11 +588,10 @@ namespace LagoVista.GitHelper
             }
         }
 
-
-        ObservableCollection<GitManagedFile> _untracked;
+        private ObservableCollection<GitManagedFile> _untracked;
         public ObservableCollection<GitManagedFile> Untracked
         {
-            get { return _untracked; }
+            get => _untracked;
             set
             {
                 _untracked = value;
@@ -578,10 +599,10 @@ namespace LagoVista.GitHelper
             }
         }
 
-        ObservableCollection<GitManagedFile> _notStaged;
+        private ObservableCollection<GitManagedFile> _notStaged;
         public ObservableCollection<GitManagedFile> NotStaged
         {
-            get { return _notStaged; }
+            get => _notStaged;
             set
             {
                 _notStaged = value;
@@ -590,10 +611,10 @@ namespace LagoVista.GitHelper
             }
         }
 
-        ObservableCollection<GitManagedFile> _staged;
+        private ObservableCollection<GitManagedFile> _staged;
         public ObservableCollection<GitManagedFile> Staged
         {
-            get { return _staged; }
+            get => _staged;
             set
             {
                 _staged = value;
@@ -601,10 +622,10 @@ namespace LagoVista.GitHelper
             }
         }
 
-        ObservableCollection<GitManagedFile> _stashed;
+        private ObservableCollection<GitManagedFile> _stashed;
         public ObservableCollection<GitManagedFile> StashedFiles
         {
-            get { return _stashed; }
+            get => _stashed;
             set
             {
                 _stashed = value;
@@ -612,11 +633,10 @@ namespace LagoVista.GitHelper
             }
         }
 
-
-        ObservableCollection<GitManagedFile> _conflicted;
+        private ObservableCollection<GitManagedFile> _conflicted;
         public ObservableCollection<GitManagedFile> Conflicted
         {
-            get { return _conflicted; }
+            get => _conflicted;
             set
             {
                 _conflicted = value;
@@ -624,7 +644,7 @@ namespace LagoVista.GitHelper
             }
         }
 
-        public ObservableCollection<GitManagedFile> FilesToCommit { get { return NotStaged != null ?  new ObservableCollection<GitManagedFile>(NotStaged.Where(fil => fil.IsDirty)) : null; } }
+        public ObservableCollection<GitManagedFile> FilesToCommit => NotStaged != null ? new ObservableCollection<GitManagedFile>(NotStaged.Where(fil => fil.IsDirty)) : null;
 
         public RelayCommand CommitCommand { get; private set; }
         public RelayCommand PushCommand { get; private set; }
@@ -644,11 +664,12 @@ namespace LagoVista.GitHelper
 
         public RelayCommand CleanUntrackedCommand { get; private set; }
         public RelayCommand HardResetCommand { get; private set; }
-        
+        public RelayCommand ForcePullCommand { get; private set; }
+
         private bool _isBusy = false;
         public bool IsBusy
         {
-            get { return _isBusy; }
+            get => _isBusy;
             set
             {
                 if (_isBusy != value)
@@ -959,22 +980,22 @@ namespace LagoVista.GitHelper
                             break;
 
                         case GitStatusParsingState.NotStaged:
-                            {
-                                fileStatus.State = GitFileState.NotStaged;
-                                fileStatus.Changes = DetectChanges(fileStatus);
-                                fileStatus.Analyze();
+                        {
+                            fileStatus.State = GitFileState.NotStaged;
+                            fileStatus.Changes = DetectChanges(fileStatus);
+                            fileStatus.Analyze();
 
-                                notStagedFilesToAdd.Add(fileStatus);
-                            }
-                            break;
+                            notStagedFilesToAdd.Add(fileStatus);
+                        }
+                        break;
                         case GitStatusParsingState.Untracked:
-                            {
-                                fileStatus.State = GitFileState.Untracked;
-                                fileStatus.Analyze();
+                        {
+                            fileStatus.State = GitFileState.Untracked;
+                            fileStatus.Analyze();
 
-                                untrackedFilesToAdd.Add(fileStatus);
-                            }
-                            break;
+                            untrackedFilesToAdd.Add(fileStatus);
+                        }
+                        break;
                     }
                 }
             }
@@ -1030,11 +1051,30 @@ namespace LagoVista.GitHelper
                 NotStaged = new ObservableCollection<GitManagedFile>();
                 Conflicted = new ObservableCollection<GitManagedFile>();
 
-                foreach (var file in stagedFilesToAdd) Staged.Add(file);
-                foreach (var file in untrackedFilesToAdd) Untracked.Add(file);
-                foreach (var file in notStagedFilesToAdd) NotStaged.Add(file);
-                foreach (var file in stashedFilesToAdd) StashedFiles.Add(file);
-                foreach (var file in conflictedFilesToAdd) Conflicted.Add(file);
+                foreach (var file in stagedFilesToAdd)
+                {
+                    Staged.Add(file);
+                }
+
+                foreach (var file in untrackedFilesToAdd)
+                {
+                    Untracked.Add(file);
+                }
+
+                foreach (var file in notStagedFilesToAdd)
+                {
+                    NotStaged.Add(file);
+                }
+
+                foreach (var file in stashedFilesToAdd)
+                {
+                    StashedFiles.Add(file);
+                }
+
+                foreach (var file in conflictedFilesToAdd)
+                {
+                    Conflicted.Add(file);
+                }
 
                 if (Conflicted.Any())
                 {
@@ -1097,7 +1137,7 @@ namespace LagoVista.GitHelper
             proc.Start();
             while (!proc.StandardOutput.EndOfStream)
             {
-                string line = proc.StandardOutput.ReadLine().Trim();
+                var line = proc.StandardOutput.ReadLine().Trim();
                 if (diagnostics)
                 {
                     Console.WriteLine(line);

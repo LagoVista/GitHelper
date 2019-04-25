@@ -141,6 +141,7 @@
                                     <Button Content="Stash All" Command="{Binding CurrentFolder.StashAllFilesCommand}" Width="120" />
                                     <Button Content="Stash Temporary" Command="{Binding CurrentFolder.StashTempFilesCommand}" Width="120" />
                                     <Button Content="Stage Files" Command="{Binding CurrentFolder.StageCommand}" Width="120" />
+                                    <Button Content="!! Force Pull !!" Command="{Binding CurrentFolder.ForcePullCommand}" Background="Red" Foreground="White" Width="120" />
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal">
                                     <Button Command="{Binding CurrentFolder.PullCommand}"  Width="120" >
