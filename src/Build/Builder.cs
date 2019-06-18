@@ -24,6 +24,7 @@ namespace GitHelper.Build
         private BuildUtils _buildUtils;
         private NugetUtils _nugetUtils;
 
+        private readonly MainViewModel _mainViewModel;
 
         Dispatcher _dispatcher;        
 
@@ -38,10 +39,11 @@ namespace GitHelper.Build
             });
         }
 
-        public Builder(string rootPath, IConsoleWriter writer, Dispatcher dispatcher)
+        public Builder(string rootPath, IConsoleWriter writer, Dispatcher dispatcher, MainViewModel mainVM)
         {
             _dispatcher = dispatcher;
             _rootPath = rootPath;
+            _mainViewModel = mainVM;
 
             _writer = writer;
             _fileHelper = new FileHelpers(_writer);
@@ -122,6 +124,7 @@ namespace GitHelper.Build
 
             Task.Run(() =>
             {
+                _mainViewModel.DisableFileWatcher();
                 _writer.AddMessage(LogType.Message, "Starting build");
                 _writer.Flush(true);
                 var result = BuildAll("release", 2, 1);
@@ -136,6 +139,7 @@ namespace GitHelper.Build
                     _writer.AddMessage(LogType.Error, "Build Failed!");
                 }
                 _writer.Flush(false);
+                this._mainViewModel.EnableFileWatcher();
 
                 _dispatcher.BeginInvoke(DispatcherPriority.Normal, (Action)delegate
                 {

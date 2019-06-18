@@ -42,7 +42,7 @@ namespace LagoVista.GitHelper
             _consoleWriter = new ConsoleWriter(ConsoleLogOutput, dispatcher);
             _buildConsoleWriter = new ConsoleWriter(BuildConsoleLogOutput, dispatcher);
 
-            BuildTools = new Builder(_rootPath, _buildConsoleWriter, dispatcher);
+            BuildTools = new Builder(_rootPath, _buildConsoleWriter, dispatcher, this);
 
             RefreshCommand = new RelayCommand(Refresh, CanRefresh);
 
@@ -52,6 +52,16 @@ namespace LagoVista.GitHelper
 
             UnitTestingViewModel = new UnitTesting.UnitTestingViewModel(_rootPath, _dispatcher);
 
+        }
+
+        public void EnableFileWatcher()
+        {
+            _fileWatchers.ForEach(watch => watch.EnableRaisingEvents = true);
+        }
+
+        public void DisableFileWatcher()
+        {
+            _fileWatchers.ForEach(watch => watch.EnableRaisingEvents = false);
         }
 
         public bool IsReady { get; private set; }
@@ -87,11 +97,22 @@ namespace LagoVista.GitHelper
         {
             IsBusy = true;
 
-            var dirs = System.IO.Directory.GetDirectories(_rootPath);
-            ScanMax = dirs.Length;
+            var dirs = System.IO.Directory.GetDirectories(_rootPath).Select(dir=>dir.ToLower()).ToList();
+
+            dirs.Remove($"{_rootPath}\\localpacakges");
+            dirs.Remove($"{_rootPath}\\localprivatepacakges");
+            dirs.Remove($"{_rootPath}\\do.docs");
+            dirs.Remove($"{_rootPath}\\do.documentation");
+            dirs.Remove($"{_rootPath}\\examples");
+            dirs.Remove($"{_rootPath}\\buildscripts");
+
+            ScanMax = dirs.Count();
             ScanProgress = 0;
             ScanVisibility = Visibility.Visible;
 
+            var idx = 0;
+            var count = dirs.Count();
+           
             Task.Run(() =>
             {
                 IsBusy = true;
@@ -102,7 +123,7 @@ namespace LagoVista.GitHelper
                 {
                     _dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, (Action)delegate
                     {
-                        Status = "Scanning: " + dir;
+                        Status = $"Scanning: {dir} {idx++} of {count}.";
                         ScanProgress = ScanProgress + 1.0;
                     });
 
@@ -542,15 +563,25 @@ namespace LagoVista.GitHelper
 
         public GitManagedFolder ScanTree(String dir)
         {
-            if (dir.ToLower().Contains("do.doc"))
+            if (dir.ToLower().Contains("do.doc")
+                || dir.ToLower().Contains("dockerbuild")
+                || dir.ToLower().Contains("examples")
+                || dir.ToLower().Contains("buildscripts")
+                || dir.ToLower().Contains("localprivatepackages")
+                || dir.ToLower().Contains("localpackages"))
             {
                 return null;
             }
+
+            Debug.WriteLine($"+Strarting: " + dir);
 
             var folder = new GitManagedFolder(_dispatcher, _consoleWriter);
             folder.Label = dir.Split('\\').Last();
             folder.Path = dir;
             var result = folder.Scan(resetAllClear: false);
+
+
+            Debug.WriteLine($"-Completed: " + dir);
 
             return result ? folder : null;
         }
