@@ -45,11 +45,11 @@ namespace LagoVista.GitHelper
             BuildTools = new Builder(_rootPath, _buildConsoleWriter, dispatcher, this);
 
             RefreshCommand = new RelayCommand(Refresh, CanRefresh);
+            AddSelectedNotStagedCommand = new RelayCommand(AddSelectedNotStaged);
 
 
             IsReady = true;
             _dependencyManager = new Dependencies.DependencyManager(_rootPath,  _dispatcher);
-
             UnitTestingViewModel = new UnitTesting.UnitTestingViewModel(_rootPath, _dispatcher);
 
         }
@@ -91,6 +91,26 @@ namespace LagoVista.GitHelper
         public void Refresh(Object obj)
         {
             ScanNow();
+        }
+
+        public void AddSelectedNotStaged()
+        {
+            var bldr = new List<String>();
+            foreach(var file in CurrentFolder.NotStaged)
+            {
+                if(file.Selected)
+                {
+                    bldr.Add(file.FullPath);
+                }
+            }
+
+            IsBusy = true;
+            Task.Run(() =>
+            {
+                RunProcess("git.exe", $"add {file.FullPath}", "adding file", checkRemote: false);
+            });
+
+
         }
 
         public void ScanNow()
@@ -716,6 +736,8 @@ namespace LagoVista.GitHelper
 
         public RelayCommand RefreshCommand { get; private set; }
         public RelayCommand SaveRootPathCommand { get; private set; }
+
+        public RelayCommand AddSelectedNotStagedCommand { get; private set; }
 
         #endregion
     }

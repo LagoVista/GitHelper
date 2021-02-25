@@ -198,6 +198,17 @@ namespace LagoVista.GitHelper
             }
         }
 
+        private bool _selected;
+        public bool Selected
+        {
+            get { return _selected; }
+            set 
+            { 
+                _selected = value;
+                NotifyChanged(nameof(Selected));
+            }
+        }
+
         public GitManagedFolder Folder { get { return _folder; } }
 
         public RelayCommand UndoChangesCommand { get; private set; }
