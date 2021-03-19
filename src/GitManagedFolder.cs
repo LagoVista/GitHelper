@@ -336,7 +336,7 @@ namespace LagoVista.GitHelper
             });
         }
 
-        private void RunProcess(string cmd, string args, string actionType, bool clearConsole = true, bool checkRemote = true)
+        public void RunProcess(string cmd, string args, string actionType, bool clearConsole = true, bool checkRemote = true)
         {
             var proc = new Process
             {
