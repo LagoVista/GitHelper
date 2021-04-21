@@ -107,7 +107,7 @@ namespace LagoVista.GitHelper
             IsBusy = true;
             Task.Run(() =>
             {
-                RunProcess("git.exe", $"add {file.FullPath}", "adding file", checkRemote: false);
+                //RunProcess("git.exe", $"add {file.FullPath}", "adding file", checkRemote: false);
             });
 
 

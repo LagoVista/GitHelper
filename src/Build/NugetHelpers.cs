@@ -34,7 +34,7 @@ namespace GitHelper.Build
             var days = Convert.ToInt32((dateStamp - new DateTime(2017, 5, 17)).TotalDays);
             var timeStamp = $"{dateStamp.Hour.ToString("00")}{dateStamp.Minute.ToString("00")}";
 
-            return $"{major}.{minor}.{days}-beta{timeStamp}";
+            return $"{major}.{minor}.{days}.{timeStamp}";
         }
 
         public InvokeResult SaveBackup(string fileName)
