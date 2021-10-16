@@ -17,7 +17,7 @@ namespace GitHelper.Build
 
     public class FileHelpers : IFileHelper
     {
-        IConsoleWriter _consoleWriter;
+        readonly IConsoleWriter _consoleWriter;
 
         public FileHelpers(IConsoleWriter writer)
         {

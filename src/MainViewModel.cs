@@ -1,5 +1,6 @@
 ﻿using GitHelper.Build;
 using LagoVista.Core.Commanding;
+using LagoVista.GitHelper.Models;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -16,13 +17,14 @@ namespace LagoVista.GitHelper
 {
     public class MainViewModel : INotifyPropertyChanged
     {
-        Dispatcher _dispatcher;
-        ConsoleWriter _consoleWriter;
-        ConsoleWriter _buildConsoleWriter;
-        String _rootPath;
+        readonly Dispatcher _dispatcher;
+        readonly ConsoleWriter _consoleWriter;
+        readonly ConsoleWriter _buildConsoleWriter;
+        readonly List<FileSystemWatcher> _fileWatchers = new List<FileSystemWatcher>();
 
-
-        Dependencies.DependencyManager _dependencyManager;
+        string _rootPath;
+        readonly ViewSettings _veiwSettings = new ViewSettings();
+        readonly Dependencies.DependencyManager _dependencyManager;
 
         public MainViewModel(Dispatcher dispatcher)
         {
@@ -47,6 +49,8 @@ namespace LagoVista.GitHelper
             RefreshCommand = new RelayCommand(Refresh, CanRefresh);
             AddSelectedNotStagedCommand = new RelayCommand(AddSelectedNotStaged);
 
+            SelectedAllNotStagedCommand = new RelayCommand(SelectAllNotStaged);
+            ClearAllNotStagedCommand = new RelayCommand(ClearAllNotStaged);
 
             IsReady = true;
             _dependencyManager = new Dependencies.DependencyManager(_rootPath,  _dispatcher);
@@ -81,7 +85,7 @@ namespace LagoVista.GitHelper
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
-        List<FileSystemWatcher> _fileWatchers = new List<FileSystemWatcher>();
+
 
         private void NotifyChanged(string propertyName)
         {
@@ -91,6 +95,22 @@ namespace LagoVista.GitHelper
         public void Refresh(Object obj)
         {
             ScanNow();
+        }
+
+        public void SelectAllNotStaged()
+        {
+            foreach (var file in CurrentFolder.NotStaged)
+            {
+                file.Selected = true;
+            }
+        }
+
+        public void ClearAllNotStaged()
+        {
+            foreach (var file in CurrentFolder.NotStaged)
+            {
+                file.Selected = false;
+            }
         }
 
         public void AddSelectedNotStaged()
@@ -142,7 +162,7 @@ namespace LagoVista.GitHelper
                     _dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, (Action)delegate
                     {
                         Status = $"Scanning: {dir} {idx++} of {count}.";
-                        ScanProgress = ScanProgress + 1.0;
+                        ScanProgress = ScanProgress++;
                     });
 
                     var folder = ScanTree(dir);
@@ -229,7 +249,7 @@ namespace LagoVista.GitHelper
         }
 
         #region File Watcher
-        private List<string> _ignoredFileTypes = new List<string>()
+        private readonly List<string> _ignoredFileTypes = new List<string>()
         {
             ".cache",
             ".tmp",
@@ -244,7 +264,7 @@ namespace LagoVista.GitHelper
             ".ide-wal",
         };
 
-        private Dictionary<string, DateTime> _updateTimeStamps = new Dictionary<string, DateTime>();
+        private readonly Dictionary<string, DateTime> _updateTimeStamps = new Dictionary<string, DateTime>();
 
         private bool ShouldIgnore(string directoryName, string fullFileName, string changeType)
         {
@@ -328,7 +348,7 @@ namespace LagoVista.GitHelper
 
                 if (file == null)
                 {
-                    file = new GitManagedFile(this._dispatcher, folder)
+                    file = new GitManagedFile(this._dispatcher, _veiwSettings, folder)
                     {
                         Directory = directoryName,
                         FullPath = fullFileName,
@@ -593,9 +613,11 @@ namespace LagoVista.GitHelper
 
             Debug.WriteLine($"+Strarting: " + dir);
 
-            var folder = new GitManagedFolder(_dispatcher, _consoleWriter);
-            folder.Label = dir.Split('\\').Last();
-            folder.Path = dir;
+            var folder = new GitManagedFolder(_dispatcher, _veiwSettings, _consoleWriter)
+            {
+                Label = dir.Split('\\').Last(),
+                Path = dir
+            };
             var result = folder.Scan(resetAllClear: false);
 
 
@@ -736,6 +758,8 @@ namespace LagoVista.GitHelper
         public RelayCommand SaveRootPathCommand { get; private set; }
 
         public RelayCommand AddSelectedNotStagedCommand { get; private set; }
+        public RelayCommand SelectedAllNotStagedCommand { get; private set; }
+        public RelayCommand ClearAllNotStagedCommand { get; private set; }
 
         #endregion
     }

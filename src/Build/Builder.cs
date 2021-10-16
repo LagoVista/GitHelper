@@ -14,19 +14,18 @@ namespace GitHelper.Build
 {
     public class Builder : INotifyPropertyChanged
     {
-        private string _rootPath;
-        private IConsoleWriter _writer;
+        private readonly string _rootPath;
+        private readonly IConsoleWriter _writer;
 
-        private SolutionHelper _solutionHelper;
-        private NugetHelpers _nugetHelpers;
-        private FileHelpers _fileHelper;
+        private readonly SolutionHelper _solutionHelper;
+        private readonly NugetHelpers _nugetHelpers;
+        private readonly FileHelpers _fileHelper;
 
-        private BuildUtils _buildUtils;
-        private NugetUtils _nugetUtils;
+        private readonly BuildUtils _buildUtils;
+        private readonly NugetUtils _nugetUtils;
 
         private readonly MainViewModel _mainViewModel;
-
-        Dispatcher _dispatcher;        
+        readonly Dispatcher _dispatcher;        
 
         private bool _isCancelled;
 
@@ -127,7 +126,7 @@ namespace GitHelper.Build
                 _mainViewModel.DisableFileWatcher();
                 _writer.AddMessage(LogType.Message, "Starting build");
                 _writer.Flush(true);
-                var result = BuildAll("release", 2, 1);
+                var result = BuildAll("release", 3, 0);
                 // since the nuspecs are hard coded to look for files in release folder building in debug causes problems
                 //var result = BuildAll("debug", 2, 1);
                 if (result.Successful)

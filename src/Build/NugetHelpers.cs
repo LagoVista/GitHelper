@@ -15,11 +15,9 @@ namespace GitHelper.Build
         const string NUSPECVERSOIN_REGEX = @"<version>\s*(?'version'[\w\.-]+)\s*<\/version>";
 
         const string NUGET_ALL_PACKAGES = @"<PackageReference\s+Include\s*=\s*""(?'assembly'[\w\.]+)""\s+Version\s*=\s*""(?'version'[\w\.-]*)""\s+\/>";
-
-
-        IFileHelper _fileHelper;
-        SolutionHelper _solutionsHelper;
-        IConsoleWriter _consoleWriter;
+        readonly IFileHelper _fileHelper;
+        readonly SolutionHelper _solutionsHelper;
+        readonly IConsoleWriter _consoleWriter;
 
 
         public NugetHelpers(IConsoleWriter consoleWriter, IFileHelper fileHelper, SolutionHelper solutionHelper)
@@ -31,10 +29,10 @@ namespace GitHelper.Build
 
         public string GenerateNugetVersion(int major, int minor, DateTime dateStamp)
         {
-            var days = Convert.ToInt32((dateStamp - new DateTime(2017, 5, 17)).TotalDays);
-            var timeStamp = $"{dateStamp.Hour.ToString("00")}{dateStamp.Minute.ToString("00")}";
+            var days = Convert.ToInt32((dateStamp.Date - new DateTime(2017, 5, 17)).TotalDays);
+            var timeStamp = $"{dateStamp.Hour:00}{dateStamp.Minute:00}";
 
-            return $"{major}.{minor}.{days}-beta{timeStamp}";
+            return $"{major}.{minor}.{days}.{timeStamp}";
         }
 
         public InvokeResult SaveBackup(string fileName)
@@ -267,7 +265,7 @@ namespace GitHelper.Build
         {
             var packages = new List<Package>();
 
-            var result = _fileHelper.OpenFile(csProjFileName);
+            _fileHelper.OpenFile(csProjFileName);
 
             var nugetRegEx = new Regex(NUGET_ALL_PACKAGES);
 

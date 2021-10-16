@@ -27,7 +27,7 @@ namespace GitHelperTests
             _fileHelpers = new FileHelpers(consoleWriter);
 
             _solutionHelper = new SolutionHelper(_fileHelpers, consoleWriter);
-            var items = _solutionHelper.LoadSolutions(rootPath);
+            _solutionHelper.LoadSolutions(rootPath);
             _buildUtils = new BuildUtils(new ConsoleWriter());
             _nugetHelpers = new NugetHelpers(consoleWriter, new FileHelpers(consoleWriter), _solutionHelper);
             _nugetUtils = new NugetUtils(consoleWriter, new FileHelpers(consoleWriter), _nugetHelpers );
