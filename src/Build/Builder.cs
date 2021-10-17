@@ -127,7 +127,7 @@ namespace GitHelper.Build
                 _mainViewModel.DisableFileWatcher();
                 _writer.AddMessage(LogType.Message, "Starting build");
                 _writer.Flush(true);
-                var result = BuildAll("release", 2, 1);
+                var result = BuildAll("release", 3, 0);
                 // since the nuspecs are hard coded to look for files in release folder building in debug causes problems
                 //var result = BuildAll("debug", 2, 1);
                 if (result.Successful)

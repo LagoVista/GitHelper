@@ -31,7 +31,7 @@ namespace GitHelper.Build
 
         public string GenerateNugetVersion(int major, int minor, DateTime dateStamp)
         {
-            var days = Convert.ToInt32((dateStamp - new DateTime(2017, 5, 17)).TotalDays);
+            var days = Convert.ToInt32((dateStamp.Date - new DateTime(2017, 5, 17)).TotalDays);
             var timeStamp = $"{dateStamp.Hour.ToString("00")}{dateStamp.Minute.ToString("00")}";
 
             return $"{major}.{minor}.{days}.{timeStamp}";

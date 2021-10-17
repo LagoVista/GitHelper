@@ -100,17 +100,15 @@ namespace LagoVista.GitHelper
             {
                 if(file.Selected)
                 {
-                    bldr.Add(file.FullPath);
+                    bldr.Add($"\"{file.FullPath}\"");
                 }
             }
 
             IsBusy = true;
             Task.Run(() =>
             {
-                //RunProcess("git.exe", $"add {file.FullPath}", "adding file", checkRemote: false);
+                CurrentFolder.RunProcess("git.exe", $"add {String.Join(" ", bldr)}", "adding file", checkRemote: false);
             });
-
-
         }
 
         public void ScanNow()
