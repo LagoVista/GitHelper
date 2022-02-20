@@ -1,4 +1,5 @@
 ﻿using LagoVista.Core.Commanding;
+using LagoVista.GitHelper.Models;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -24,8 +25,9 @@ namespace LagoVista.GitHelper
     public class GitManagedFolder : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler PropertyChanged;
-        private ConsoleWriter _consoleWriter;
-        private Dispatcher _dispatcher;
+        private readonly ConsoleWriter _consoleWriter;
+        private readonly Dispatcher _dispatcher;
+        private readonly ViewSettings _viewSettings;
 
         public event EventHandler<bool> IsBusyEvent;
 
@@ -38,10 +40,11 @@ namespace LagoVista.GitHelper
             Conflicts,
         }
 
-        public GitManagedFolder(Dispatcher dispatcher, ConsoleWriter writer)
+        public GitManagedFolder(Dispatcher dispatcher, ViewSettings viewSettings, ConsoleWriter writer)
         {
             _consoleWriter = writer;
             _dispatcher = dispatcher;
+            _viewSettings = viewSettings;
 
             StashTempFilesCommand = new RelayCommand(StashTempFiles, CanStashFiles);
             StashAllFilesCommand = new RelayCommand(StashAllFiles, CanStashFiles);
@@ -952,16 +955,31 @@ namespace LagoVista.GitHelper
                         fileType = FileTypes.ProjectFile;
                     }
 
+                    var changeType = ChangeType.None;
+
+                    if (line.StartsWith("both")) changeType = ChangeType.BothModified;
+                    if (line.StartsWith("modified")) changeType = ChangeType.Modified;
+                    if (line.StartsWith("new file")) changeType = ChangeType.New;
+                    if (line.StartsWith("deleted")) changeType = ChangeType.Deleted;
+
                     line = line.Replace("both modified:", "").Trim().Replace('/', '\\');
                     line = line.Replace("modified:", "").Trim().Replace('/', '\\');
                     line = line.Replace("new file:", "").Trim().Replace('/', '\\');
-                    var fileStatus = new GitManagedFile(_dispatcher, this)
+                    line = line.Replace("deleted:", "").Trim().Replace('/', '\\');
+
+                    var fileStatus = new GitManagedFile(_dispatcher, _viewSettings, this)
                     {
                         Directory = Path,
                         Label = line.Trim(),
                         FileType = fileType,
+                        ChangeType = changeType,
                         FullPath = $"{Path}\\{line.TrimEnd()}"
                     };
+
+                    if (changeType == ChangeType.Deleted)
+                    {
+                        fileStatus.IsDirty = true;
+                    }
 
                     switch (scanState)
                     {
@@ -980,22 +998,25 @@ namespace LagoVista.GitHelper
                             break;
 
                         case GitStatusParsingState.NotStaged:
-                        {
-                            fileStatus.State = GitFileState.NotStaged;
-                            fileStatus.Changes = DetectChanges(fileStatus);
-                            fileStatus.Analyze();
+                            {
+                                fileStatus.State = GitFileState.NotStaged;
+                                fileStatus.Changes = DetectChanges(fileStatus);
+                                if (changeType != ChangeType.Deleted)
+                                {
+                                    fileStatus.Analyze();
+                                }
 
-                            notStagedFilesToAdd.Add(fileStatus);
-                        }
-                        break;
+                                if (_viewSettings.ShowSystemChanges || fileStatus.IsDirty)
+                                    notStagedFilesToAdd.Add(fileStatus);
+                            }
+                            break;
                         case GitStatusParsingState.Untracked:
-                        {
-                            fileStatus.State = GitFileState.Untracked;
-                            fileStatus.Analyze();
-
-                            untrackedFilesToAdd.Add(fileStatus);
-                        }
-                        break;
+                            {
+                                fileStatus.State = GitFileState.Untracked;
+                                fileStatus.Analyze();
+                                untrackedFilesToAdd.Add(fileStatus);
+                            }
+                            break;
                     }
                 }
             }
@@ -1034,7 +1055,7 @@ namespace LagoVista.GitHelper
                     line != "No stash entries found." &&
                     !String.IsNullOrEmpty(line))
                 {
-                    stashedFilesToAdd.Add(new GitManagedFile(_dispatcher, this)
+                    stashedFilesToAdd.Add(new GitManagedFile(_dispatcher, _viewSettings, this)
                     {
                         Label = line,
                         State = GitFileState.Stashed,

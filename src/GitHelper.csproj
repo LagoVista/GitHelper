@@ -79,6 +79,7 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Models\UnitTest.cs" />
+    <Compile Include="Models\ViewSettings.cs" />
     <Compile Include="UnitTesting\UnitTestingViewModel.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>

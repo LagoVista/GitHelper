@@ -14,19 +14,18 @@ namespace GitHelper.Build
 {
     public class Builder : INotifyPropertyChanged
     {
-        private string _rootPath;
-        private IConsoleWriter _writer;
+        private readonly string _rootPath;
+        private readonly IConsoleWriter _writer;
 
-        private SolutionHelper _solutionHelper;
-        private NugetHelpers _nugetHelpers;
-        private FileHelpers _fileHelper;
+        private readonly SolutionHelper _solutionHelper;
+        private readonly NugetHelpers _nugetHelpers;
+        private readonly FileHelpers _fileHelper;
 
-        private BuildUtils _buildUtils;
-        private NugetUtils _nugetUtils;
+        private readonly BuildUtils _buildUtils;
+        private readonly NugetUtils _nugetUtils;
 
         private readonly MainViewModel _mainViewModel;
-
-        Dispatcher _dispatcher;        
+        readonly Dispatcher _dispatcher;        
 
         private bool _isCancelled;
 

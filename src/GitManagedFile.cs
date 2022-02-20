@@ -1,6 +1,8 @@
 ﻿using LagoVista.Core.Commanding;
+using LagoVista.GitHelper.Models;
 using System;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Threading;
@@ -30,17 +32,26 @@ namespace LagoVista.GitHelper
         Untouched
     }
 
+    public enum ChangeType
+    {
+        None,
+        New,
+        BothModified,
+        Modified,
+        Deleted
+    }
+
     public class GitManagedFile : INotifyPropertyChanged
     {
-        Dispatcher _dispatcher;
+        readonly Dispatcher _dispatcher;
+        readonly ViewSettings _viewSettings;
+        readonly GitManagedFolder _folder;
 
-        GitManagedFolder _folder;
-
-        public GitManagedFile(Dispatcher dispatcher, GitManagedFolder folder)
+        public GitManagedFile(Dispatcher dispatcher, ViewSettings viewSettings, GitManagedFolder folder)
         {
             _dispatcher = dispatcher;
             _folder = folder;
-
+            _viewSettings = viewSettings;
             UnstageFileCommand = new RelayCommand((obj) => _folder.UnstageFileCommand.Execute(this));
             UndoChangesCommand = new RelayCommand((obj) => _folder.UndoChangesCommand.Execute(this));
             MergeCommand = new RelayCommand((obj) => _folder.MergeCommand.Execute(this));
@@ -74,6 +85,8 @@ namespace LagoVista.GitHelper
 
         public GitFileState State { get; set; }
 
+        public ChangeType ChangeType { get; set; } = ChangeType.None;
+
         public string Directory { get; set; }
 
         public string FullPath { get; set; }
@@ -89,7 +102,7 @@ namespace LagoVista.GitHelper
             {
                 if (String.IsNullOrEmpty(Label))
                 {
-                    return "-empty";
+                    return "-empty-";
                 }
                 else if (Label.Length > 60)
                 {
@@ -117,7 +130,9 @@ namespace LagoVista.GitHelper
             {
                 if (_changes != value)
                 {
-                    _changes = value;
+                    // for some strange reason these characters are appearing in front of csproj files
+                    // when we detect changes with git.
+                    _changes = value.Replace("ï»¿", string.Empty);
                     NotifyChanged(nameof(Changes));
                 }
             }
@@ -180,12 +195,12 @@ namespace LagoVista.GitHelper
             }
 
             var lines = Changes.Split('\r');
+            var previousLine = string.Empty;
             foreach (var line in lines)
             {
                 var trimmedLine = line.Trim();
                 if (!String.IsNullOrEmpty(trimmedLine))
                 {
-
                     var regEx = new Regex("<PackageReference.+Include=\"LagoVista.+\".+./>");
                     if (!regEx.Match(trimmedLine).Success)
                     {
@@ -195,6 +210,12 @@ namespace LagoVista.GitHelper
                         }
                     }
                 }
+         
+                if(IsDirty && !String.IsNullOrEmpty(previousLine) && !String.IsNullOrEmpty(trimmedLine) && previousLine.Substring(1) == trimmedLine.Substring(1))
+                {
+                    IsDirty = false;
+                }
+                previousLine = line;
             }
         }
 
